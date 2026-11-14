@@ -1,0 +1,21 @@
+{
+  "label": "moon_from_geocentre_subpoints",
+  "url": "https://ssd.jpl.nasa.gov/api/horizons.api?format=text&COMMAND=%27301%27&OBJ_DATA=%27NO%27&MAKE_EPHEM=%27YES%27&EPHEM_TYPE=%27OBSERVER%27&CENTER=%27500%40399%27&START_TIME=%272027-01-01%2000%3A00%3A00%27&STOP_TIME=%272027-04-01%2000%3A00%3A00%27&STEP_SIZE=%2710%20m%27&QUANTITIES=%2714%2C15%2C20%27&CSV_FORMAT=%27YES%27&ANG_FORMAT=%27DEG%27&TIME_DIGITS=%27SECONDS%27",
+  "params": {
+    "format": "text",
+    "COMMAND": "'301'",
+    "OBJ_DATA": "'NO'",
+    "MAKE_EPHEM": "'YES'",
+    "EPHEM_TYPE": "'OBSERVER'",
+    "CENTER": "'500@399'",
+    "START_TIME": "'2027-01-01 00:00:00'",
+    "STOP_TIME": "'2027-04-01 00:00:00'",
+    "STEP_SIZE": "'10 m'",
+    "QUANTITIES": "'14,15,20'",
+    "CSV_FORMAT": "'YES'",
+    "ANG_FORMAT": "'DEG'",
+    "TIME_DIGITS": "'SECONDS'"
+  },
+  "retrievedAtUtc": "2026-11-13T21:30:05Z",
+  "sha256": "1fe0e34d44b77639d2bbf63265380df441bc39a43efe283c975e9a4f50cc0dec"
+}

@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+node_modules/
+web/dist/
+web/tsconfig.tsbuildinfo
+web/screenshots/
+.env
+.env.*
+web/public/data-synthetic/
+web/test-results/
+web/playwright-report/
+# Large downloaded rasters are re-fetchable; see docs/data-pipeline.md
+data/dem/
+.DS_Store

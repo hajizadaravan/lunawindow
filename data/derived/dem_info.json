@@ -1,0 +1,58 @@
+{
+  "file": "LDEM_80S_40MPP_ADJ.TIF",
+  "shape": [
+    15200,
+    15200
+  ],
+  "dtype": "float32",
+  "compression": 8,
+  "modelType": "Projected",
+  "rasterType": "IsArea",
+  "citation": "Moon (2015) - Sphere / Ocentric / South Polar",
+  "geogCitation": "GCS Name = Moon (2015) - Sphere / Ocentric|Datum = Moon (2015) - Sphere|Ellipsoid = Moon (2015) - Sphere|Primem = Reference Meridian|",
+  "semiMajorM": 1737400.0,
+  "semiMinorM": 1737400.0,
+  "primeMeridian": 0.0,
+  "coordTrans": "PolarStereographic",
+  "natOriginLat": -90.0,
+  "scaleAtOrigin": 1.0,
+  "straightVertPoleLon": 0.0,
+  "falseEasting": 0.0,
+  "falseNorthing": 0.0,
+  "linearUnits": "Meter",
+  "pixelScale": [
+    40.0,
+    40.0,
+    0.0
+  ],
+  "tiepoint": [
+    0.0,
+    0.0,
+    0.0,
+    -304000.0,
+    304000.0,
+    0.0
+  ],
+  "gdalNodata": "nan",
+  "gdalMetadataHasScaleOffset": false,
+  "gdalMetadata": "<GDALMetadata>\n  <Item name=\"NC_GLOBAL#Conventions\">CF-1.7</Item>\n  <Item name=\"NC_GLOBAL#description\">Mean value per bin</Item>\n  <Item name=\"NC_GLOBAL#GMT_version\">6.5.0_2402709_2023.01.09 [64-bit]</Item>\n  <Item name=\"NC_GLOBAL#history\">gmt grdmath ldem_80s_final_adj_40mpp_surf.grd 1000.0 MUL = test.grd</Item>\n  <Item name=\"NC_GLOBAL#node_offset\">1</Item>\n  <Item name=\"NC_GLOBAL#title\">Produced by grdmath</Item>\n  <Item name=\"x#actual_range\">{-304,304}</Item>\n  <Item name=\"x#axis\">X</Item>\n  <Item name=\"x#long_name\">x</Item>\n  <Item name=\"y#actual_range\">{-304,304}</Item>\n  <Item name=\"y#axis\">Y</Item>\n  <Item name=\"y#long_name\">y</Item>\n  <Item name=\"z#actual_range\">{-7296.54248046875,7026.8134765625}</Item>\n  <Item name=\"z#long_name\">z</Item>\n  <Item name=\"z#_FillValue\">nan</Item>\n  <Item name=\"actual_range\" sample=\"0\">{-7296.54248046875,7026.8134765625}</Item>\n  <Item name=\"long_name\" sample=\"0\">z</Item>\n  <Item name=\"NETCDF_VARNAME\" sample=\"0\">z</Item>\n  <Item name=\"_FillValue\" sample=\"0\">nan</Item>\n</GDALMetadata>",
+  "checks": {
+    "projected": true,
+    "pixelIsArea": true,
+    "sphere1737400": true,
+    "polarStereographic": true,
+    "southPoleOrigin": true,
+    "unitScaleAtPole": true,
+    "centralMeridian0": true,
+    "noFalseOrigin": true,
+    "metres": true,
+    "squarePixels": true,
+    "tiepointAtPixel00": true,
+    "nodataNaN": true,
+    "noScaleOffset": true
+  },
+  "sha256": "b7f3567bfa405dbcb42f867f6cd3c9932ca9752b4363ce1eef835f9115c1dd76",
+  "size": 716299920,
+  "retrievedAtUtc": "2026-11-13T21:47:56Z",
+  "url": "https://pgda.gsfc.nasa.gov/data/LOLA_20mpp/LDEM_80S_40MPP_ADJ.TIF"
+}

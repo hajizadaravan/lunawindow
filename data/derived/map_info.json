@@ -1,0 +1,13 @@
+{
+  "image": "map/south-pole-hillshade.png",
+  "widthPx": 621,
+  "heightPx": 1317,
+  "projection": "south-polar-stereographic",
+  "referenceRadiusM": 1737400,
+  "xMinM": -23320.0,
+  "xMaxM": 51200.0,
+  "yMinM": -24320.0,
+  "yMaxM": 133720.0,
+  "rendering": "Hillshade of LDEM_80S_40MPP_ADJ.TIF (3x3 block mean, 120 m per image pixel), illuminated from map-grid azimuth 315 deg (image upper left) at 35 deg altitude; illustrative only, not a real illumination state.",
+  "sourceId": "lola-ldem-80s-40mpp"
+}

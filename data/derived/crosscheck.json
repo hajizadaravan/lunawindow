@@ -1,0 +1,84 @@
+{
+  "subpointRawFile": "data/raw/horizons/moon_from_geocentre_subpoints__4de64eb5730dc571.txt",
+  "rawSha256": "1fe0e34d44b77639d2bbf63265380df441bc39a43efe283c975e9a4f50cc0dec",
+  "method": [
+    "Derive Sun and Earth azimuth/elevation at each demonstration point from a *different* Horizons product \u2014",
+    "the sub-Earth point (ObsSub-LON/LAT, quantity 14), sub-solar point (SunSub-LON/LAT, quantity 15) and",
+    "Earth-Moon range (quantity 20) of the Moon as seen from the geocentre, in the Moon's MOON_ME frame \u2014 with",
+    "our own vector geometry including the finite Earth distance, and compare with the topocentric az/el."
+  ],
+  "sites": {
+    "demo-a": {
+      "earth": {
+        "n": 12961,
+        "maxSeparationDeg": 0.005992568013631399,
+        "rmsSeparationDeg": 0.0040812189151228015,
+        "maxAbsDeltaElDeg": 0.0005585363251094932,
+        "meanDeltaElDeg": -0.00018392329442868852,
+        "maxAbsDeltaAzTimesCosElDeg": 0.00599189100142672,
+        "controlNoParallaxMaxSeparationDeg": 0.27891694121050636,
+        "controlWestLongitudeMaxSeparationDeg": 85.40272502847972,
+        "controlCounterClockwiseAzimuthMaxSeparationDeg": 100.28594849233465
+      },
+      "sun": {
+        "n": 12961,
+        "maxSeparationDeg": 0.0001912891238677432,
+        "rmsSeparationDeg": 0.00018081501758332422,
+        "maxAbsDeltaElDeg": 3.084234607056424e-06,
+        "meanDeltaElDeg": 3.622387384902477e-07,
+        "maxAbsDeltaAzTimesCosElDeg": 0.0001912807418243514,
+        "controlNoParallaxMaxSeparationDeg": 0.0007079163437207987,
+        "controlWestLongitudeMaxSeparationDeg": 85.40018800305137,
+        "controlCounterClockwiseAzimuthMaxSeparationDeg": 179.90611997242476
+      }
+    },
+    "demo-b": {
+      "earth": {
+        "n": 12961,
+        "maxSeparationDeg": 0.0059943068328553156,
+        "rmsSeparationDeg": 0.004082631477603828,
+        "maxAbsDeltaElDeg": 0.0005587750848419226,
+        "meanDeltaElDeg": -0.00016968744411957696,
+        "maxAbsDeltaAzTimesCosElDeg": 0.005992445069431407,
+        "controlNoParallaxMaxSeparationDeg": 0.27789139874437374,
+        "controlWestLongitudeMaxSeparationDeg": 4.132201763880996,
+        "controlCounterClockwiseAzimuthMaxSeparationDeg": 19.572428960669246
+      },
+      "sun": {
+        "n": 12961,
+        "maxSeparationDeg": 0.0001914224489730012,
+        "rmsSeparationDeg": 0.0001808176997936388,
+        "maxAbsDeltaElDeg": 1.440178007439119e-05,
+        "meanDeltaElDeg": 7.002749364916084e-07,
+        "maxAbsDeltaAzTimesCosElDeg": 0.00019141906810385108,
+        "controlNoParallaxMaxSeparationDeg": 0.0007170117956724129,
+        "controlWestLongitudeMaxSeparationDeg": 4.125182331765648,
+        "controlCounterClockwiseAzimuthMaxSeparationDeg": 179.85344201032564
+      }
+    },
+    "demo-c": {
+      "earth": {
+        "n": 12961,
+        "maxSeparationDeg": 0.005992601829152928,
+        "rmsSeparationDeg": 0.004081223016667394,
+        "maxAbsDeltaElDeg": 0.0005663707768857051,
+        "meanDeltaElDeg": -0.00016916289590655423,
+        "maxAbsDeltaAzTimesCosElDeg": 0.00598678259027204,
+        "controlNoParallaxMaxSeparationDeg": 0.2783748256562779,
+        "controlWestLongitudeMaxSeparationDeg": 146.39301809109995,
+        "controlCounterClockwiseAzimuthMaxSeparationDeg": 158.3207722043515
+      },
+      "sun": {
+        "n": 12961,
+        "maxSeparationDeg": 0.00019126244769411034,
+        "rmsSeparationDeg": 0.00018081497621535783,
+        "maxAbsDeltaElDeg": 5.457137656650346e-06,
+        "meanDeltaElDeg": 2.2926498758928608e-07,
+        "maxAbsDeltaAzTimesCosElDeg": 0.00019120896522693714,
+        "controlNoParallaxMaxSeparationDeg": 0.00070253328794432,
+        "controlWestLongitudeMaxSeparationDeg": 146.39983494438724,
+        "controlCounterClockwiseAzimuthMaxSeparationDeg": 179.70173479765984
+      }
+    }
+  }
+}

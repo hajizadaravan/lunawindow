@@ -1,0 +1,79 @@
+# LunaWindow
+
+Interactive web app (NASA Space Apps 2026, "Lunar Landing Site Navigator") that compares lunar south-pole
+demonstration points and mission start dates by the **longest continuous loss of Sun or Earth visibility**
+within a selected mission window, and shows what changes if the mission starts 24 hours later.
+
+Exploratory prototype for students and educators. Nothing here certifies landing safety, power or communication.
+
+## MVP boundaries
+
+In: three demonstration points, date range 2027-01-01 … 2027-04-01 UTC, 1–14 day windows (default 7),
+geometric and terrain horizons, longest-gap cards, user tolerance limits, baseline vs +24 h, cached data only.
+Out: backend, live NASA requests at runtime, power/link models, arbitrary coordinates, 3D view, in-app chatbot.
+
+## Layout and ownership
+
+| Path | What | Owner lane |
+|---|---|---|
+| `docs/data-contract.md` | Shared JSON shapes, conventions, analysis algorithm (normative) | integrator only |
+| `pipeline/` | Python: Horizons ingestion, LOLA terrain horizon, reference analysis, export, tests | data |
+| `data/raw/`, `data/derived/` | Cached raw NASA responses and derived terrain/cross-check results (committed) | data |
+| `data/dem/` | Large rasters, git-ignored, re-downloadable | data |
+| `web/public/data/`, `fixtures/` | **Generated** by the pipeline — never hand-edit | data |
+| `web/` (everything else) | Vite + React + TypeScript app; analysis in `web/src/analysis/` | frontend |
+| `docs/data-pipeline.md`, `docs/verification-data.md` | Reproduction steps, measured verification results | data |
+| `docs/status.md` | Continuation note: what is done, unverified, next | whoever finishes a deliverable |
+| `docs/demo-script.md`, `README.md` | Walkthrough and overview | integrator |
+
+## Commands
+
+Web (from `web/`):
+- `npm install`, `npm run dev` (real cached data), `npm run build`, `npm run preview`
+- `npm test` — Vitest, includes `fixtures/analysis-golden.json`
+- `npx playwright install chromium` once, then `npm run test:e2e`
+- `npm run dev:synthetic` — generates `public/data-synthetic/` and runs against it (banner shown)
+
+Pipeline (from the repo root):
+- `python3 -m venv .venv && .venv/bin/pip install -r pipeline/requirements.txt`
+- `.venv/bin/python -m pytest -q pipeline/tests` (DEM tests skip when `data/dem/` is empty)
+- Offline regeneration from committed caches: `.venv/bin/python -m pipeline.export` then `.venv/bin/python -m pipeline.golden`
+- Full rebuild including raster downloads and Horizons fetches: follow `docs/data-pipeline.md` step by step
+
+## Scientific rules
+
+- Follow `docs/data-contract.md` section 1 for frames, units, azimuth, UTC. Metres and degrees in JSON; Horizons takes km.
+- Two horizon modes that must never be confused: `geometric-reference` (0°, no terrain) and `terrain-lola`.
+  Every result panel shows the active mode.
+- Body-centre visibility only. Sun visible ≠ power; Earth-centre visible ≠ radio link; user limits ≠ battery endurance.
+- Gaps are "within the selected analysis interval"; boundary-touching gaps may continue outside it.
+- No fabricated measurements, no "best site" claims, no "NASA-approved landing site" wording.
+  Every number in the UI comes from the dataset or the analysis module.
+- Synthetic data sets `synthetic: true`, lives only in `web/public/data-synthetic/`, and must show the banner.
+- The demo must run from cached data with no live NASA request. Horizons requests are serialised and cached;
+  a cached response is never re-fetched.
+- Source rasters are used only after `pipeline.dem.verify_raster` matches their pinned sha256 (fails closed).
+
+## Verification requirements
+
+- The analysis exists twice (`pipeline/analysis.py`, `web/src/analysis/visibility.ts`). Any change to one needs the
+  other changed, the contract updated, `pipeline.golden` rerun, and both test suites green.
+- After changing the pipeline: pytest, re-export, golden, `npm test`.
+- After changing the UI: `npm test`, `npm run build`, `npm run test:e2e`, and look at the running app.
+- Record measured results in `docs/verification-data.md`; never state a check that was not run.
+
+## Status and known limitations
+
+Working MVP on real cached data (3 points, both horizon modes, map, comparison). See `docs/status.md` for the
+current state and next steps, and `README.md` for the limitation list. The main scientific caveat: the terrain
+horizon comes from a 40 m grid, so around a 2 m mast on a summit the near-field horizon is under-resolved, and
+near the pole a small horizon error can move a transition by hours.
+
+## Working with the orchestrator
+
+- Use the installed `fable-orchestration` skill when delegating. Pass an explicit `model:` on every agent;
+  implementation and review lanes go to Opus, the main loop keeps the contract, integration and final judgment.
+- At most two implementation lanes at once, each with owned paths from the table above; lanes never edit
+  each other's paths or the contract.
+- A lane's report is a claim: rerun its tests and inspect its output before calling it done.
+- Do not commit unless the user asks.

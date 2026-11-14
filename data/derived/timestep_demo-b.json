@@ -1,0 +1,58 @@
+{
+  "siteId": "demo-b",
+  "windowStartUtc": "2027-02-11T00:00:00Z",
+  "windowEndUtc": "2027-02-14T00:00:00Z",
+  "bodies": {
+    "sun": {
+      "rawFile": "data/raw/horizons/demo-b_sun_1min_2027-02-11__b2786ef517042923.txt",
+      "maxElevationInterpErrorDeg": 9.000000000014552e-05,
+      "horizons": {
+        "geometric-reference": {
+          "transitionShiftPerUncertaintyHours": [],
+          "transitions10min": 1,
+          "transitions1min": 1,
+          "countMismatch": 0,
+          "maxTransitionDiffSeconds": 5.789000034332275,
+          "meanTransitionDiffSeconds": 5.789000034332275
+        },
+        "terrain-lola": {
+          "transitionShiftPerUncertaintyHours": [
+            6.152,
+            6.204,
+            3.8,
+            2.398,
+            3.2
+          ],
+          "transitions10min": 5,
+          "transitions1min": 5,
+          "countMismatch": 0,
+          "maxTransitionDiffSeconds": 6.438999891281128,
+          "meanTransitionDiffSeconds": 2.6907999515533447
+        }
+      }
+    },
+    "earth": {
+      "rawFile": "data/raw/horizons/demo-b_earth_1min_2027-02-11__479a68c4854c6afd.txt",
+      "maxElevationInterpErrorDeg": 9.000000000192188e-05,
+      "horizons": {
+        "geometric-reference": {
+          "transitionShiftPerUncertaintyHours": [],
+          "transitions10min": 0,
+          "transitions1min": 0,
+          "countMismatch": 0,
+          "maxTransitionDiffSeconds": 0.0,
+          "meanTransitionDiffSeconds": 0.0
+        },
+        "terrain-lola": {
+          "transitionShiftPerUncertaintyHours": [],
+          "transitions10min": 0,
+          "transitions1min": 0,
+          "countMismatch": 0,
+          "maxTransitionDiffSeconds": 0.0,
+          "meanTransitionDiffSeconds": 0.0
+        }
+      }
+    }
+  },
+  "maxTransitionDiffSeconds": 6.438999891281128
+}
