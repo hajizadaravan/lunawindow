@@ -438,9 +438,9 @@ agents were told not to edit):
   material recompiles at data gaps); the readout's "uncertain" sentence uses the same analysis flag as the state line;
   geometric mode gets its own caption; pan target clamped to the model; `docs/data-pipeline.md` names the new files;
   mast height in the footnote from the dataset; e2e checks for shadows on/off; the shadow map is disposed. Not acted
-  on: CLAUDE.md still lists cast shadows as out of scope and `export_terrain3d.py` writes "No cast-shadow simulation"
-  into each model's `limitations` (true of the file itself; regenerating the GLBs needs the DEM and is not
-  byte-reproducible), both left for the user.
+  on: `export_terrain3d.py` writes "No cast-shadow simulation" into each model's `limitations` (true of the file
+  itself; regenerating the GLBs needs the DEM and is not byte-reproducible). CLAUDE.md, which listed cast shadows as
+  out of scope, was updated afterwards at the user's request (scope, skyline command, 3D display rule).
 - Second round over the fixes (same setup, medium). Security: nothing; notes acted on: the agreeing line says "the
   drawn skyline matches the result", in geometric mode "this mode ignores terrain"; the footnote says "every moment
   with data"; a non-finite skyline value is treated as no surface. Code: one defect, fixed: the view's corner rays were

@@ -10,9 +10,10 @@ Exploratory prototype for students and educators. Nothing here certifies landing
 
 In: three demonstration points, date range 2027-01-01 … 2027-04-01 UTC, 1–14 day windows (default 7),
 geometric and terrain horizons, longest-gap cards, user tolerance limits, baseline vs +24 h, cached data only,
-display-only 3D terrain view with Sun/Earth playback.
-Out: backend, live NASA requests at runtime, power/link models, arbitrary coordinates, cast-shadow simulation,
-5 m terrain detail, in-app chatbot.
+display-only 3D terrain view with Sun/Earth playback, display-only cast shadows from its mesh, and a per-moment flag
+where the drawn surface disagrees with the result (a warning only; the result is unchanged).
+Out: backend, live NASA requests at runtime, power/link models, arbitrary coordinates, shadow-based visibility or
+illumination results, 5 m terrain detail, in-app chatbot.
 
 ## Layout and ownership
 
@@ -41,7 +42,8 @@ Pipeline (from the repo root):
 - `.venv/bin/python -m pytest -q pipeline/tests` (DEM tests skip when `data/dem/` is empty)
 - Offline regeneration from committed caches: `.venv/bin/python -m pipeline.export` then `.venv/bin/python -m pipeline.golden`
 - 3D display-mesh skyline check (no DEM, deterministic): `.venv/bin/python -m pipeline.terrain3d_skyline`
-  (writes `data/derived/terrain3d-skyline.json`)
+  (writes `data/derived/terrain3d-skyline.json` and `web/public/data/terrain3d/<id>.skyline.json`; rerun after every
+  `pipeline.export_terrain3d`, or the 3D view refuses the stale skyline)
 - Full rebuild including raster downloads and Horizons fetches: follow `docs/data-pipeline.md` step by step
 
 ## Scientific rules
@@ -57,7 +59,8 @@ Pipeline (from the repo root):
 - The demo must run from cached data with no live NASA request. Horizons requests are serialised and cached;
   a cached response is never re-fetched.
 - The 3D terrain mesh is display only: every visible, blocked or no-data state shown in the 3D view comes from the
-  analysis results, never from the mesh.
+  analysis results, never from the mesh. Its cast shadows are imagery, approximate and never compared with the result;
+  where the mesh skyline disagrees with a state, the view must say so (contract section 6), never hide it.
 - Source rasters are used only after `pipeline.dem.verify_raster` matches their pinned sha256 (fails closed).
 
 ## Verification requirements

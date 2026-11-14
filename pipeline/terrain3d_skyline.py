@@ -1,6 +1,7 @@
 """Compare the shipped 3D display mesh's skyline with the analysis terrain horizon.
 
-Run: .venv/bin/python -m pipeline.terrain3d_skyline  (writes data/derived/terrain3d-skyline.json)
+Run: .venv/bin/python -m pipeline.terrain3d_skyline  (writes data/derived/terrain3d-skyline.json and
+web/public/data/terrain3d/<siteId>.skyline.json)
 
 The visibility analysis uses the terrain horizon stored in web/public/data/sites/<id>.json. The 3D view
 draws a different surface: the GLB display mesh, with coarser rings and stitched seams. This module
