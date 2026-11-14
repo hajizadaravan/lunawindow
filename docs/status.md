@@ -7,8 +7,8 @@ MVP is complete and verified on real cached data. Branch `integrate/3d-terrain` 
 `feature/3d-terrain-visualization` (Gasim Garayev Yavuz: LOLA display meshes and a first Three.js viewer) and adds
 the playback rework, the mesh skyline check, the landing card and the `#/app` redesign. Three views now share one
 time cursor: timelines, horizon view and the 3D terrain view. The analysis, the visibility data and the golden
-fixture were not touched. The branch is committed (merge commit, the friend's authorship kept in history) and pushed
-to `origin/integrate/3d-terrain`; it is not merged into `main` and no pull request is open.
+fixture were not touched. The branch is committed (merge commit, the friend's authorship kept in history), pushed to
+`origin/integrate/3d-terrain`, and merged into `main` by fast-forward at the user's request (2026-11-14).
 
 ## Accepted decisions
 - Static app, no backend: Python pipeline writes cached JSON to `web/public/data/`, analysis runs in the browser
@@ -53,7 +53,6 @@ to `origin/integrate/3d-terrain`; it is not merged into `main` and no pull reque
 
 ## Open, waiting for the user
 - The second, bolder `#/app` redesign pass has not been accepted or rejected yet.
-- Whether to merge `integrate/3d-terrain` into `main`.
 
 ## Next actions
 1. Optional, asked for by lanes, not started: a one-sentence lead and a disclosure for the controls in
