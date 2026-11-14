@@ -97,7 +97,7 @@ export function BodyCard({
               <MinusCircle size={16} weight="bold" aria-hidden />
               No {name} limit set
             </span>
-            <p className="muted">Enter a tolerance in Mission period to check this interval against it.</p>
+            <p className="muted">Enter a tolerance under Your limits to check this interval against it.</p>
           </>
         )}
       </div>

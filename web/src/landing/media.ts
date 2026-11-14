@@ -11,8 +11,11 @@ export interface Shot {
   height: number;
   alt: string;
   /** Bento crop: the image is drawn `zoom` times the cell width, with the point (x, y) (fractions of the image)
-   *  at the cell's top-left corner. */
-  crop: { x: number; y: number; zoom: number };
+   *  at the cell's top-left corner. The image is never drawn smaller than what fills the cell's height.
+   *  `narrowKeepX` is for one-column widths, where a wide shot is cut on both sides: the horizontal range of the
+   *  image (fractions) that must stay in view. Its middle is centred in the cell and the 680 px legibility floor
+   *  is dropped, so the range always fits. */
+  crop: { x: number; y: number; zoom: number; narrowKeepX?: readonly [number, number] };
 }
 
 export const MEDIA = {
@@ -44,6 +47,17 @@ export const MEDIA = {
       height: 906,
       alt: "The navigator's visibility timelines for the delayed window: Earth in view throughout, the Sun in view except one outlined interruption near the end.",
       crop: { x: 0, y: 0.09, zoom: 1.3 },
+    },
+    // Captured by scripts/capture-landing-shots.mjs like the others (2x, dark): a clip of the 3D viewport only, at Demo
+    // point A, 2027-02-17 09:30 UTC (the moment the terrain e2e screenshots use), Sun-direction lighting, both centres
+    // visible, with the "Drag to orbit" hint hidden. Redo just this one with `--only terrain`.
+    terrain: {
+      src: src("media/shots/terrain.png"),
+      width: 1846,
+      height: 692,
+      alt: "The navigator's 3D view of the LOLA terrain around Demo point A, with lines from the point toward the Sun and Earth directions, both labelled centre visible.",
+      // narrowKeepX: from the left edge of the Sun label to the right edge of the Earth label.
+      crop: { x: 0.035, y: 0.12, zoom: 1.04, narrowKeepX: [0.13, 0.63] },
     },
   } satisfies Record<string, Shot>,
 };

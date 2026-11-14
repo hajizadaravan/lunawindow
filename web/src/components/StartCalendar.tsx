@@ -85,10 +85,12 @@ function cellDescription(c: CalendarCell, siteName: string, shiftHours: number) 
 
 export function StartCalendar(p: Props) {
   // Deferred so the calendar never delays the first paint of the main result.
-  const inputs = useDeferredValue(
-    { sites: p.sites, mode: p.mode, durationHours: p.durationHours, shiftHours: p.shiftHours, checkShift: p.checkShift, tod: p.timeOfDayMs },
-    null,
+  // Memoised so the deferred value (and the analyses below) only change when one of these inputs does.
+  const live = useMemo(
+    () => ({ sites: p.sites, mode: p.mode, durationHours: p.durationHours, shiftHours: p.shiftHours, checkShift: p.checkShift, tod: p.timeOfDayMs }),
+    [p.sites, p.mode, p.durationHours, p.shiftHours, p.checkShift, p.timeOfDayMs],
   );
+  const inputs = useDeferredValue(live, null);
 
   const rows: Row[] | null = useMemo(() => {
     if (!inputs) return null;

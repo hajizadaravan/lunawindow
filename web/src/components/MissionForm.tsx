@@ -20,13 +20,18 @@ interface Props {
   limits: LimitsInput;
   limitErrors: { sun: string | null; earth: string | null };
   onLimits: (l: LimitsInput) => void;
+  /** Which group of fields to render: the start and duration, or the user's own limits. */
+  part: "when" | "limits";
 }
 
 const DURATION_DAYS = [1, 2, 3, 5, 7, 10, 14];
 const DAY_MS = 86_400_000;
 const HOUR_MS = 3_600_000;
 
-/** Start, duration and limit fields. Rendered as bare `.field` elements so the caller places them in its grid. */
+/**
+ * Start and duration fields (part "when") or limit fields (part "limits"). Rendered as bare `.field` elements so the
+ * caller places them in its own groups.
+ */
 export function MissionForm(p: Props) {
   const { manifest, bounds, startMs } = p;
   const rangeStart = Date.parse(manifest.supportedRange.startUtc);
@@ -76,6 +81,15 @@ export function MissionForm(p: Props) {
     );
   };
 
+  if (p.part === "limits") {
+    return (
+      <>
+        {limitField("sun", "Max Sun loss")}
+        {limitField("earth", "Max Earth loss")}
+      </>
+    );
+  }
+
   return (
     <>
       <div className="field f-date">
@@ -111,8 +125,6 @@ export function MissionForm(p: Props) {
           ))}
         </select>
       </div>
-      {limitField("sun", "Max Sun loss")}
-      {limitField("earth", "Max Earth loss")}
     </>
   );
 }

@@ -28,6 +28,8 @@ Other commands (from `web/`): `npm test`, `npm run build`, `npm run preview`,
 - Sun and Earth azimuth/elevation track against the horizon, with a shared time cursor.
 - Visibility timelines, longest continuous interruption per body, user-defined tolerance limits with a
   plain-language verdict, and a baseline vs +24 h comparison.
+- 3D terrain view of the LOLA 40 m terrain around each point: Play moves the Sun and Earth directions across the
+  selected window, and every visible or blocked state shown in it comes from the same analysis as the timelines.
 - Assumptions & sources panel with the exact data provenance.
 
 ## How it is built
@@ -46,6 +48,15 @@ Other commands (from `web/`): `npm test`, `npm run build`, `npm run preview`,
   cannot represent may set the real horizon; near the pole a small horizon error can move a transition by hours.
 - Fixed date range, three fixed points, fixed 2 m observer height.
 - The difference between the Horizons and LOLA realisations of the lunar body-fixed frame is not quantified.
+- The 3D terrain view draws a display mesh only; visibility is never derived from it. Seen from the 2 m mast,
+  its skyline differs from the analysis terrain horizon beyond the 80 m near-field start by up to 0.298° at A,
+  0.14° at B and 0.225° at C, which exceeds the stated horizon uncertainty in 81 of 720 azimuth bins at A and
+  32 of 720 at C (`data/derived/terrain3d-skyline.json`). Inside those first 80 m, which the analysis horizon
+  leaves out, the mesh rises above the analysis horizon by up to 0.749° at A (by more than the stated uncertainty
+  in 150 of 720 bins), by up to 0.01° at B and nowhere at C. So the 3D view can draw terrain across a ray that
+  is labelled "centre visible": the label is the analysis result, not what the mesh shows.
+- The 3D view simulates no cast shadows. Its surface shading follows the Sun direction only, so a slope can look
+  lit while the Sun centre is blocked by distant terrain.
 
 ## Data sources
 

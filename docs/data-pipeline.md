@@ -61,6 +61,31 @@ checked against the sha256 and parameters in their `.meta.json` on every use.
 Survey tool used to choose the demonstration points (screens candidates offline from the DEM and the cached
 sub-point table): `.venv/bin/python -m pipeline.site_survey LAT,LON [LAT,LON ...]`.
 
+## 3D terrain display assets
+
+The 3D view's display meshes (`web/public/data/terrain3d/<siteId>.glb` and `.json`, contract section 6) and the
+skyline comparison are made by two modules. Neither touches the visibility data or the network.
+
+```sh
+# a. Display meshes. Needs the 40 m raster from step 2 (verified by pipeline.dem.verify_raster before any read).
+#    Refuses a site whose surface height differs from web/public/data/sites/<id>.json by more than 0.01 m.
+#    Writes web/public/data/terrain3d/<id>.glb + <id>.json and data/derived/terrain3d-verification.json.
+.venv/bin/python -m pipeline.export_terrain3d
+
+# b. Skyline check: the display mesh's skyline from the 2 m mast minus the analysis terrain horizon, per
+#    azimuth bin. Reads only the committed GLBs and site files (no DEM, no network); deterministic.
+#    Writes data/derived/terrain3d-skyline.json.
+.venv/bin/python -m pipeline.terrain3d_skyline
+
+# c. Tests (pipeline/tests/test_terrain3d.py, test_terrain3d_skyline.py) run with step 8.
+```
+
+**Regenerate together.** Each `.json` holds its GLB's byte length and sha256, and the web app refuses a GLB that
+does not match. Always regenerate and commit the GLB and its `.json` together, then rerun step b. On 2026-11-14,
+re-running `pipeline.export_terrain3d` once with a different numpy build reproduced the vertices to within 9e-12 m
+but not byte for byte, so the GLB hashes changed. That was a single observation, not a repeatable check: do not
+expect identical bytes across environments.
+
 ## Modules
 
 | Module | Purpose |
@@ -76,6 +101,8 @@ sub-point table): `.venv/bin/python -m pipeline.site_survey LAT,LON [LAT,LON ...
 | `timestep.py` | 10-minute vs 1-minute transition comparison |
 | `maprender.py` | Hillshade overview + exact map extents |
 | `export.py`, `golden.py` | Write `web/public/data/**` and `fixtures/analysis-golden.json` |
+| `export_terrain3d.py` | 3D display meshes `web/public/data/terrain3d/<id>.glb` + `.json` (display only) |
+| `terrain3d_skyline.py` | Display-mesh skyline vs analysis terrain horizon -> `data/derived/terrain3d-skyline.json` |
 
 ## Data sources
 

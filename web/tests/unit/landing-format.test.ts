@@ -30,6 +30,18 @@ describe("feature list", () => {
     expect(FEATURES.filter((f) => f.visual.kind === "shot").length).toBeGreaterThanOrEqual(3);
   });
 
+  it("lists the 3D terrain view as shipped and only its cast shadows as planned", () => {
+    expect(FEATURES.map((f) => f.id)).toEqual(["calendar", "delay", "horizon", "timeline", "terrain", "modes", "limits"]);
+    expect(PLANNED).toEqual([
+      "A date heatmap for the whole south-pole region",
+      "Cast shadows in the 3D terrain view",
+      "An energy and battery model",
+    ]);
+    // The 3D view shows directions over a display mesh; it neither simulates shadows nor computes visibility.
+    const terrain = FEATURES.find((f) => f.id === "terrain")!;
+    expect(`${terrain.title} ${terrain.body}`).not.toMatch(/shadow|illuminat|power|line of sight|\bbest\b/i);
+  });
+
   it("uses no dash characters or banned wording in landing copy", () => {
     const text = [...FEATURES.flatMap((f) => [f.title, f.body]), ...PLANNED].join(" ");
     expect(text).not.toMatch(/[–—]/);

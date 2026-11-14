@@ -87,11 +87,17 @@ function Cell({ f, story, storyFailed = false, example, onTryDemo, onOpenCalenda
             alt={v.shot.alt}
             loading="lazy"
             decoding="async"
+            data-keep-x={v.shot.crop.narrowKeepX?.join(",")}
             style={
               {
                 "--lw-zoom": `${v.shot.crop.zoom * 100}%`,
                 "--lw-cx": `${-v.shot.crop.x * 100}%`,
                 "--lw-cy": `${-v.shot.crop.y * 100}%`,
+                // Image width per unit of cell height at which the part below the crop's top just fills the cell.
+                "--lw-cover": v.shot.width / (v.shot.height * (1 - v.shot.crop.y)),
+                ...(v.shot.crop.narrowKeepX && {
+                  "--lw-fx": `${(-(v.shot.crop.narrowKeepX[0] + v.shot.crop.narrowKeepX[1]) / 2) * 100}%`,
+                }),
               } as CSSProperties
             }
           />

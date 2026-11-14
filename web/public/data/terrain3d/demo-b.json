@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "siteId": "demo-b",
+  "sourceUrl": "https://pgda.gsfc.nasa.gov/data/LOLA_20mpp/LDEM_80S_40MPP_ADJ.TIF",
+  "sourceProduct": "LDEM_80S_40MPP_ADJ.TIF",
+  "sourceSha256": "b7f3567bfa405dbcb42f867f6cd3c9932ca9752b4363ce1eef835f9115c1dd76",
+  "frame": "MOON_ME / DE421",
+  "localAxes": "east,up,south",
+  "units": "metres",
+  "referenceRadiusM": 1737400.0,
+  "verticalExaggeration": 1,
+  "origin": {
+    "latDeg": -85.9883,
+    "lonEastDeg": 2.0625,
+    "surfaceElevationM": 5173.169797092401
+  },
+  "sourceResolutionM": 40,
+  "displayStepsM": [
+    40,
+    160,
+    640,
+    2560
+  ],
+  "displayWidthM": 491520,
+  "surfaceAgreementM": 0.0002029075994869345,
+  "maxEdgeAdjustmentM": [
+    12.420034728884342,
+    35.0996661794569,
+    325.6080099942687,
+    0.0
+  ],
+  "vertexCount": 137544,
+  "triangleCount": 271488,
+  "limitations": [
+    "Coarser distant terrain and stitched edges are for display only.",
+    "No cast-shadow simulation; shading follows the Sun direction or an explicitly labelled relief light.",
+    "Visibility comes from the original full-resolution horizon, not the display mesh.",
+    "Invalid raster cells are omitted; this is a finite patch, not a complete lunar surface."
+  ],
+  "file": "demo-b.glb",
+  "bytes": 6563492,
+  "sha256": "8eefa9ac17628ed15220e6d50623219990d9c573268c61ada492e50d67114b8e"
+}

@@ -1,0 +1,181 @@
+{
+  "description": "Skyline of the shipped 3D display mesh minus the analysis terrain horizon, seen from the observer height above the site surface, at the analysis azimuths. Positive = the display mesh rises above the horizon used for visibility. Display-only diagnostic; visibility results use the terrain horizon, not the mesh.",
+  "method": {
+    "skyline": "exact maximum over triangle-edge crossings of each azimuth's vertical half-plane",
+    "azimuths": "bin i at i * azimuthStepDeg, as sampled by pipeline.terrain.compute_horizon",
+    "analysisRange": "nearFieldStartM <= horizontal distance <= searchExtentM",
+    "nearField": "0 < horizontal distance <= nearFieldStartM (inside the analysis near-field start)",
+    "samplingCheck": "independent ray sampling at 20, 10, 5, 2.5 m on every 8th bin; exact minus sampled must be >= 0 and shrink",
+    "decimals": 3
+  },
+  "sites": [
+    {
+      "siteId": "demo-a",
+      "glb": "demo-a.glb",
+      "glbSha256": "d9c0f320702e9abc4b84a015a3b5e62effe8c8e86519e6dc6db03e4e5a32a99f",
+      "observerHeightM": 2.0,
+      "azimuthStepDeg": 0.5,
+      "bins": 720,
+      "nearFieldStartM": 80.0,
+      "searchExtentM": 300000.0,
+      "uncertaintyDeg": 0.12,
+      "coverageLimitedBins": 0,
+      "analysisRange": {
+        "medianDeg": -0.017,
+        "p5Deg": -0.196,
+        "p95Deg": 0.016,
+        "minDeg": -0.298,
+        "maxDeg": 0.092,
+        "maxAbsDeg": 0.298,
+        "binsCompared": 720,
+        "binsBeyondUncertainty": 81,
+        "binsWithoutMesh": 0
+      },
+      "nearField": {
+        "medianDeg": -0.783,
+        "p5Deg": -2.759,
+        "p95Deg": 0.446,
+        "minDeg": -2.829,
+        "maxDeg": 0.749,
+        "maxAbsDeg": 2.829,
+        "binsCompared": 720,
+        "binsAboveAnalysisHorizon": 172,
+        "binsAboveByMoreThanUncertainty": 150
+      },
+      "samplingCheck": {
+        "binsChecked": 90,
+        "everyNthBin": 8,
+        "bySpacing": {
+          "20m": {
+            "maxExactMinusSampledDeg": 0.0715,
+            "minExactMinusSampledDeg": 0.0
+          },
+          "10m": {
+            "maxExactMinusSampledDeg": 0.0236,
+            "minExactMinusSampledDeg": 0.0
+          },
+          "5m": {
+            "maxExactMinusSampledDeg": 0.018,
+            "minExactMinusSampledDeg": 0.0
+          },
+          "2.5m": {
+            "maxExactMinusSampledDeg": 0.0085,
+            "minExactMinusSampledDeg": 0.0
+          }
+        }
+      }
+    },
+    {
+      "siteId": "demo-b",
+      "glb": "demo-b.glb",
+      "glbSha256": "8eefa9ac17628ed15220e6d50623219990d9c573268c61ada492e50d67114b8e",
+      "observerHeightM": 2.0,
+      "azimuthStepDeg": 0.5,
+      "bins": 720,
+      "nearFieldStartM": 80.0,
+      "searchExtentM": 300000.0,
+      "uncertaintyDeg": 0.17,
+      "coverageLimitedBins": 0,
+      "analysisRange": {
+        "medianDeg": 0.007,
+        "p5Deg": -0.041,
+        "p95Deg": 0.075,
+        "minDeg": -0.14,
+        "maxDeg": 0.121,
+        "maxAbsDeg": 0.14,
+        "binsCompared": 720,
+        "binsBeyondUncertainty": 0,
+        "binsWithoutMesh": 0
+      },
+      "nearField": {
+        "medianDeg": -0.867,
+        "p5Deg": -1.834,
+        "p95Deg": -0.02,
+        "minDeg": -2.017,
+        "maxDeg": 0.01,
+        "maxAbsDeg": 2.017,
+        "binsCompared": 720,
+        "binsAboveAnalysisHorizon": 16,
+        "binsAboveByMoreThanUncertainty": 0
+      },
+      "samplingCheck": {
+        "binsChecked": 90,
+        "everyNthBin": 8,
+        "bySpacing": {
+          "20m": {
+            "maxExactMinusSampledDeg": 0.1102,
+            "minExactMinusSampledDeg": 0.0
+          },
+          "10m": {
+            "maxExactMinusSampledDeg": 0.0386,
+            "minExactMinusSampledDeg": 0.0
+          },
+          "5m": {
+            "maxExactMinusSampledDeg": 0.0344,
+            "minExactMinusSampledDeg": 0.0
+          },
+          "2.5m": {
+            "maxExactMinusSampledDeg": 0.0134,
+            "minExactMinusSampledDeg": 0.0
+          }
+        }
+      }
+    },
+    {
+      "siteId": "demo-c",
+      "glb": "demo-c.glb",
+      "glbSha256": "47095a6bf04a65d653e50cf8e469d5883fb8abc2b626d8b97d5bb3e3e945e47d",
+      "observerHeightM": 2.0,
+      "azimuthStepDeg": 0.5,
+      "bins": 720,
+      "nearFieldStartM": 80.0,
+      "searchExtentM": 300000.0,
+      "uncertaintyDeg": 0.05,
+      "coverageLimitedBins": 0,
+      "analysisRange": {
+        "medianDeg": -0.006,
+        "p5Deg": -0.047,
+        "p95Deg": 0.003,
+        "minDeg": -0.225,
+        "maxDeg": 0.025,
+        "maxAbsDeg": 0.225,
+        "binsCompared": 720,
+        "binsBeyondUncertainty": 32,
+        "binsWithoutMesh": 0
+      },
+      "nearField": {
+        "medianDeg": -4.081,
+        "p5Deg": -8.125,
+        "p95Deg": -2.09,
+        "minDeg": -8.666,
+        "maxDeg": -1.92,
+        "maxAbsDeg": 8.666,
+        "binsCompared": 720,
+        "binsAboveAnalysisHorizon": 0,
+        "binsAboveByMoreThanUncertainty": 0
+      },
+      "samplingCheck": {
+        "binsChecked": 90,
+        "everyNthBin": 8,
+        "bySpacing": {
+          "20m": {
+            "maxExactMinusSampledDeg": 0.0226,
+            "minExactMinusSampledDeg": 0.0
+          },
+          "10m": {
+            "maxExactMinusSampledDeg": 0.0164,
+            "minExactMinusSampledDeg": 0.0
+          },
+          "5m": {
+            "maxExactMinusSampledDeg": 0.0132,
+            "minExactMinusSampledDeg": 0.0
+          },
+          "2.5m": {
+            "maxExactMinusSampledDeg": 0.0033,
+            "minExactMinusSampledDeg": 0.0
+          }
+        }
+      }
+    }
+  ]
+}

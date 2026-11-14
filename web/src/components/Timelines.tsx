@@ -187,6 +187,10 @@ export function Timelines(p: Props) {
         <h2 id="tl-h">Visibility over the selected analysis interval</h2>
         <ModeTag horizon={p.horizon} />
       </div>
+      <p className="panel-lead">
+        When the Sun and Earth centres are above or below the modelled horizon, across the whole window. Move the cursor
+        to read any moment; the horizon view below follows it.
+      </p>
       <div ref={wrapRef} className="chart-wrap">
         <svg
           ref={svgRef}
@@ -242,14 +246,17 @@ export function Timelines(p: Props) {
         <span>{describe("sun", sunAt)}</span>
         <span>{describe("earth", earthAt)}</span>
       </div>
-      <p id="tl-keys" className="hint">
-        Drag across the timelines, or focus them and use <span className="kbd">←</span> <span className="kbd">→</span> to
-        step {p.site.time.stepSeconds / 60} min, <span className="kbd">Shift</span>+arrows for 6 h,{" "}
-        <span className="kbd">Page Up</span>/<span className="kbd">Page Down</span> for 24 h,{" "}
-        <span className="kbd">Home</span>/<span className="kbd">End</span> for the interval edges.
-      </p>
       <Legend />
-      <details className="table-view">
+      <details className="more">
+        <summary>Keyboard and pointer controls</summary>
+        <p id="tl-keys" className="hint">
+          Drag across the timelines, or focus them and use <span className="kbd">←</span> <span className="kbd">→</span> to
+          step {p.site.time.stepSeconds / 60} min, <span className="kbd">Shift</span>+arrows for 6 h,{" "}
+          <span className="kbd">Page Up</span>/<span className="kbd">Page Down</span> for 24 h,{" "}
+          <span className="kbd">Home</span>/<span className="kbd">End</span> for the interval edges.
+        </p>
+      </details>
+      <details className="table-view more">
         <summary>Show intervals as a table</summary>
         {[sun, earth].map((r) => (
           <IntervalTable key={r.body} r={r} />

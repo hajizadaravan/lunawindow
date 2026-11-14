@@ -185,3 +185,32 @@ test("no layout shift when the data arrives (preview harness, MOCK callbacks)", 
     after.forEach((t, i) => expect(Math.abs(t - before[i]), `section ${i} top at ${width} px`).toBeLessThan(1));
   }
 });
+
+test("every tool shot covers its bento cell, and the 3D terrain shot keeps both labels in view", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const width of [1440, 1024, 900, 600, 390, 360]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    await expect(page.locator(".lw-cell[data-kind='shot']")).toHaveCount(4);
+    for (const name of ["calendar", "horizon", "timeline", "terrain"] as const) {
+      const shot = page.locator(".lw-shot").filter({ has: page.locator(`img[src$='media/shots/${name}.png']`) });
+      await shot.scrollIntoViewIfNeeded();
+      const img = shot.locator("img");
+      await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+      const cell = (await shot.boundingBox())!;
+      const pic = (await img.boundingBox())!;
+      // The crop never leaves an empty strip inside the cell.
+      expect(pic.x, `${name} left at ${width} px`).toBeLessThanOrEqual(cell.x + 0.5);
+      expect(pic.y, `${name} top at ${width} px`).toBeLessThanOrEqual(cell.y + 0.5);
+      expect(pic.x + pic.width, `${name} right at ${width} px`).toBeGreaterThanOrEqual(cell.x + cell.width - 0.5);
+      expect(pic.y + pic.height, `${name} bottom at ${width} px`).toBeGreaterThanOrEqual(cell.y + cell.height - 0.5);
+      // The Sun and Earth labels of the terrain shot (crop.narrowKeepX in media.ts) are never cut off.
+      const keep = (await img.getAttribute("data-keep-x"))?.split(",").map(Number);
+      expect(keep !== undefined, `${name} has a kept range`).toBe(name === "terrain");
+      if (keep) {
+        expect(pic.x + keep[0] * pic.width, `${name} kept range left at ${width} px`).toBeGreaterThanOrEqual(cell.x);
+        expect(pic.x + keep[1] * pic.width, `${name} kept range right at ${width} px`).toBeLessThanOrEqual(cell.x + cell.width);
+      }
+    }
+  }
+});

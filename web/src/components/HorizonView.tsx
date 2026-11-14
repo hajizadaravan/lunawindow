@@ -123,6 +123,10 @@ export function HorizonView(p: Props) {
         <h2 id="hv-h">Horizon view at {site.site.name}</h2>
         <ModeTag horizon={horizon} />
       </div>
+      <p className="panel-lead">
+        The skyline all the way around the point, with the paths of the Sun and Earth through the window and their
+        positions at the cursor time.
+      </p>
       <div ref={wrapRef}>
         <svg
           className="horizon-svg"

@@ -27,6 +27,8 @@ web/public/data/
   manifest.json            index, supported range, sources, disclaimers
   sites/<siteId>.json      one self-contained dataset per demonstration point
   map/<name>.png           polar-stereographic overview image (optional)
+  terrain3d/<siteId>.glb   3D display mesh of the terrain around a point (section 6; display only)
+  terrain3d/<siteId>.json  description and integrity data for that mesh (section 6)
 fixtures/analysis-golden.json   cross-language analysis test vectors (section 5)
 ```
 
@@ -267,3 +269,68 @@ Required inline cases: always visible; always blocked (truncated both ends); one
 start; gap touching window end; missing samples splitting a gap; terrain ridge with azimuth wrap-around;
 exact-zero margin; limit exactly equal to the longest gap (`within`, strict `>`); +24 h shifted window of a case above.
 Required site cases (once real data exists): at least one per body per horizon kind.
+
+## 6. Terrain display assets (additive, display only)
+
+The 3D terrain view draws a mesh of the LOLA terrain around each real demonstration point. These files are
+written by `pipeline.export_terrain3d` from the pinned 40 m raster (`LDEM_80S_40MPP_ADJ.TIF`) and exist only for
+real datasets; a synthetic dataset has none.
+
+```
+web/public/data/terrain3d/<siteId>.glb    binary glTF 2.0: positions, normals, triangle indices and plain materials; no textures, extensions or external URIs
+web/public/data/terrain3d/<siteId>.json   TerrainDisplayMeta below
+```
+
+**Normative: display only.** The mesh is a display model (nested grids at 40, 160, 640 and 2560 m with stitched
+edges) and must **never** be used to derive visibility, horizon elevations, gaps or any other number shown as a
+result. Every visible, blocked or no-data state shown in the 3D view comes from the section 4 analysis of the site
+dataset's horizon, the same results the timelines use. The mesh skyline seen from the observer differs from the
+analysis terrain horizon by more than the stated horizon uncertainty in part of the azimuths at some points
+(measured in `data/derived/terrain3d-skyline.json`), and the mesh casts no shadows.
+
+**Local frame.** Positions are metres in a right-handed local frame with the origin on the surface at the site
+(`origin.surfaceElevationM` above the reference sphere): x = east, y = up (radial), z = south. The frame keeps lunar
+curvature (distant vertices drop below y = 0). Vertical exaggeration is 1. Azimuth is clockwise from north through
+east as in section 1, so a direction at azimuth `a` and elevation `e` is `(sin a cos e, sin e, -cos a cos e)`.
+
+```ts
+// ---------- terrain3d/<siteId>.json ----------
+interface TerrainDisplayMeta {
+  schemaVersion: 1;                   // required; the web app rejects any other value
+  siteId: string;                     // required; equals site.id
+  sourceUrl: string;
+  sourceProduct: string;              // required; equals the site's horizons.terrain.dem.product
+  sourceSha256: string;               // required; equals the pinned sha256 of that raster in manifest.sources
+  frame: string;                      // "MOON_ME / DE421"
+  localAxes: "east,up,south";         // required
+  units: "metres";                    // required
+  referenceRadiusM: number;           // required; equals site.referenceRadiusM
+  verticalExaggeration: 1;            // required
+  origin: { latDeg: number; lonEastDeg: number; surfaceElevationM: number };
+                                      // required; lat/lon equal the site's, surfaceElevationM within 0.01 m of it
+  sourceResolutionM: number;          // required; equals the site's horizons.terrain.dem.resolutionM
+  displayStepsM: number[];            // grid spacing of each nested ring, finest first
+  displayWidthM: number;              // side length of the coarsest ring
+  surfaceAgreementM: number;          // |origin.surfaceElevationM - site.surfaceElevationM| at export
+  maxEdgeAdjustmentM: number[];       // largest vertical move per ring from edge stitching
+  vertexCount: number;
+  triangleCount: number;
+  limitations: string[];
+  file: string;                       // required; "<siteId>.glb"
+  bytes: number;                      // required; integer byte length of the GLB
+  sha256: string;                     // required; lowercase hex sha256 of the GLB
+}
+```
+
+"Required" means the web app checks the field against the site dataset and the manifest before it downloads the
+mesh, and shows no 3D view when any check fails. The other fields are descriptive.
+
+**Integrity.** The web app downloads the GLB only after the JSON passes those checks, then compares the GLB's byte
+length with `bytes` and its sha256 with `sha256` **before parsing it**; a mismatch shows no 3D view. The GLB and its
+JSON are always regenerated and committed together. The hash comes from a JSON served from the same origin as the
+GLB, so this check catches a corrupted, truncated or mismatched file; it is not protection against someone who can
+replace both files.
+
+**Versioning.** This section is additive: no existing shape in sections 1 to 5 changes and `manifest.json` does not
+reference these files, so `contractVersion` stays `"1.0.0"`. `TerrainDisplayMeta.schemaVersion` versions these
+files on their own.

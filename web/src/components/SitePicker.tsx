@@ -159,27 +159,35 @@ function SchematicMap({ manifest, selectedId, onSelect, imageFailed }: Props & {
 export function SitePicker(props: Props) {
   const { manifest, selectedId, onSelect } = props;
   return (
-    <section className="panel" aria-labelledby="site-h">
-      <h2 id="site-h">Demonstration points</h2>
-      {manifest.map ? <ImageMap {...props} /> : <SchematicMap {...props} />}
-      <ul className="site-list" role="radiogroup" aria-labelledby="site-h">
-        {manifest.sites.map((s, i) => (
-          <li key={s.id}>
-            <label className="site-option">
-              <input type="radio" name="site-map" value={s.id} checked={s.id === selectedId} onChange={() => onSelect(s.id)} />
-              <span className="name">
-                {letter(i)}. {s.name}
-              </span>
-              <span className="meta">
-                <span className="num">
-                  {s.latDeg.toFixed(3)}°, {s.lonEastDeg.toFixed(3)}°E
-                </span>{" "}
-                near {s.locationHint}. {s.hasTerrainHorizon ? "Terrain horizon available." : "No terrain horizon."}
-              </span>
-            </label>
-          </li>
-        ))}
-      </ul>
+    <section className="panel site-picker" aria-labelledby="site-h">
+      <div className="panel-head">
+        <h2 id="site-h">Demonstration points</h2>
+      </div>
+      <p className="panel-lead">
+        Where the demonstration points sit near the south pole. Pick one here or in the scenario controls; everything above
+        follows it.
+      </p>
+      <div className="site-body">
+        <div className="site-map">{manifest.map ? <ImageMap {...props} /> : <SchematicMap {...props} />}</div>
+        <ul className="site-list" role="radiogroup" aria-labelledby="site-h">
+          {manifest.sites.map((s, i) => (
+            <li key={s.id}>
+              <label className="site-option">
+                <input type="radio" name="site-map" value={s.id} checked={s.id === selectedId} onChange={() => onSelect(s.id)} />
+                <span className="name">
+                  {letter(i)}. {s.name}
+                </span>
+                <span className="meta">
+                  <span className="num">
+                    {s.latDeg.toFixed(3)}°, {s.lonEastDeg.toFixed(3)}°E
+                  </span>{" "}
+                  near {s.locationHint}. {s.hasTerrainHorizon ? "Terrain horizon available." : "No terrain horizon."}
+                </span>
+              </label>
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
   );
 }

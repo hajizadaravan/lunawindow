@@ -24,15 +24,17 @@
 
 /* Screenshot cells: the real tool, cropped to its top-left. */
 .lw-shot {
+  --lw-shot-h: 300px;
   position: relative;
-  height: 300px;
+  height: var(--lw-shot-h);
   overflow: hidden;
   background: var(--lw-bg);
   border-bottom: 1px solid var(--lw-line);
 }
 .lw-shot img {
   position: absolute; left: 0; top: 0;
-  width: var(--lw-zoom, 100%); max-width: none; height: auto;
+  /* Never narrower than what fills the cell's height (--lw-cover is set per shot in Features.tsx). */
+  width: max(var(--lw-zoom, 100%), calc(var(--lw-shot-h) * var(--lw-cover, 0))); max-width: none; height: auto;
   translate: var(--lw-cx, 0) var(--lw-cy, 0);
   transform-origin: 0 0;
   transition: transform 0.6s var(--lw-ease);
@@ -94,5 +96,12 @@
   .lw-planned { grid-template-columns: minmax(0, 1fr); }
   .lw-planned ul { margin-top: 8px; }
   .lw-shot { height: auto; aspect-ratio: 16 / 10; }
-  .lw-shot img { width: max(var(--lw-zoom, 100%), 680px); }
+  /* 62.5% of the cell width is the cell's height at 16 / 10. */
+  .lw-shot img { width: max(var(--lw-zoom, 100%), 680px, calc(62.5% * var(--lw-cover, 0))); }
+  /* A wide shot with a range to keep in view (crop.narrowKeepX): centre that range, no 680 px floor. */
+  .lw-shot img[data-keep-x] {
+    left: 50%;
+    width: max(var(--lw-zoom, 100%), calc(62.5% * var(--lw-cover, 0)));
+    translate: var(--lw-fx, -50%) var(--lw-cy, 0);
+  }
 }

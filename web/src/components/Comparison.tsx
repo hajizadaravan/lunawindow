@@ -48,9 +48,12 @@ export function Comparison(p: Props) {
         <h2 id="cmp-h">Details: baseline vs start {p.shiftHours} hours later</h2>
         <ModeTag horizon={p.horizon} />
       </div>
+      <p className="panel-lead">
+        The same numbers side by side for the planned start and a start {p.shiftHours} hours later.
+      </p>
       {(
         <>
-          <div className="table-scroll" style={{ maxHeight: "none", marginTop: 12 }}>
+          <div className="table-scroll compare-scroll">
             <table className="compare-table">
               <caption className="sr-only">Baseline versus start {p.shiftHours} hours later</caption>
               <thead>
