@@ -31,7 +31,7 @@ test("pick site, change start, set limit, compare +24 h, move cursor, open assum
   await expect(verdict).toContainText("12.0 h");
 
   // +24 h comparison
-  await page.getByRole("checkbox", { name: /Start 24 hours later/ }).check();
+  await page.getByRole("checkbox", { name: "Also check a start 24 hours later", exact: true }).check();
   await expect(page.getByTestId("comparison")).toContainText("Baseline");
   await expect(page.getByTestId("comparison-summary")).toContainText("Starting 24 h later");
 

@@ -15,6 +15,7 @@ import { Comparison } from "./components/Comparison";
 import { AssumptionsDialog } from "./components/AssumptionsDialog";
 import { Headline } from "./components/Headline";
 import { StartCalendar, type SiteState } from "./components/StartCalendar";
+import { TerrainView } from "./components/TerrainView";
 import { LandingHero, LandingSections, type DemoStory } from "./landing";
 
 const MS_PER_HOUR = 3_600_000;
@@ -388,6 +389,11 @@ export function App() {
             </div>
           )}
         </section>
+
+        {site && horizon && startMs !== null && durationOk && (
+          <TerrainView site={site} horizon={horizon} windowStartMs={startMs}
+            sampleCount={sampleCount} cursor={cursorInWindow} onCursor={setCursor} />
+        )}
 
         <div className="tool-grid">
           <main className="main" id="results" aria-label="Results">
