@@ -27,6 +27,7 @@ fixture were not touched. The branch is committed (merge commit, the friend's au
 - Model loading: the `.json` is validated against the site and the pinned DEM sha256 before the GLB is requested;
   the GLB's length and sha256 are checked before parsing. This catches a damaged or mismatched file; it is not
   tamper protection. A GLB and its `.json` are always regenerated and committed together.
+- The second, bolder `#/app` redesign pass was accepted by the user on 2026-11-14.
 - `#/app` is locked to the landing's dark scheme whatever the OS setting (light tokens are kept under
   `:root[data-scheme="light"]`). The answer panel (`Headline.tsx`) words its verdict from the analysis `LimitStatus`.
 - Routing: hash routes in `web/src/lib/route.ts`; landing data is derived from the dataset and the analysis module.
@@ -50,9 +51,6 @@ fixture were not touched. The branch is committed (merge commit, the friend's au
 - Horizons MEAN_ME (DE441) vs LOLA MOON_ME (DE421) offset not quantified.
 - Not run: the e2e suite under deliberate machine load, browsers other than Chromium, a real phone or low-end GPU,
   contrast tooling, Lighthouse, screen-reader pass.
-
-## Open, waiting for the user
-- The second, bolder `#/app` redesign pass has not been accepted or rejected yet.
 
 ## Next actions
 1. Optional, asked for by lanes, not started: a one-sentence lead and a disclosure for the controls in
