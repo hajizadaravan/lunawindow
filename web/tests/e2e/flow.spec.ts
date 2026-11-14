@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 // One end-to-end flow, asserting on visible text. Works against the real dataset (web/public/data) or the
 // synthetic one (VITE_DATA_DIR=data-synthetic).
 test("pick site, change start, set limit, compare +24 h, move cursor, open assumptions", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/#/app");
   const synthetic = process.env.VITE_DATA_DIR === "data-synthetic";
   if (synthetic) await expect(page.getByTestId("synthetic-banner")).toContainText("Synthetic test data, not NASA measurements");
   else await expect(page.getByTestId("synthetic-banner")).toHaveCount(0);
@@ -31,7 +31,7 @@ test("pick site, change start, set limit, compare +24 h, move cursor, open assum
   await expect(verdict).toContainText("12.0 h");
 
   // +24 h comparison
-  await page.getByRole("checkbox", { name: /Start 24 hours later/ }).check();
+  await page.getByRole("checkbox", { name: /Also check a start 24 hours later/ }).check();
   await expect(page.getByTestId("comparison")).toContainText("Baseline");
   await expect(page.getByTestId("comparison-summary")).toContainText("Starting 24 h later");
 
@@ -64,7 +64,7 @@ test("pick site, change start, set limit, compare +24 h, move cursor, open assum
 test("shortening the duration with the cursor at the window end keeps the page alive", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(String(e)));
-  await page.goto("/");
+  await page.goto("/#/app");
   await expect(page.getByTestId("timelines")).toBeVisible();
 
   // Ask for the latest start a 1-day window allows, while the window is 14 days long: the app clamps it

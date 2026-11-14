@@ -1,7 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const dataDir = process.env.VITE_DATA_DIR ?? "data";
-const port = 4179;
+// E2E_PORT lets two lanes run suites at the same time without colliding.
+const port = Number(process.env.E2E_PORT ?? 4179);
 
 export default defineConfig({
   testDir: "tests/e2e",

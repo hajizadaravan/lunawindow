@@ -1,0 +1,113 @@
+/* LunaWindow landing: base tokens, type, buttons, shared helpers.
+   The landing is one fixed dark page in both OS themes (it sits over lunar imagery), so it defines its own tokens
+   on its root instead of using the light/dark page tokens from styles.css.
+   Radius system follows the tool: 6px controls (--r-ctl), 10px panels (--r-panel). */
+
+.lw-root {
+  --lw-bg: #0a0b0d;
+  --lw-surface: #131417;
+  --lw-surface-2: #1b1d21;
+  --lw-ink: #f1f2ee;
+  --lw-ink-2: rgba(241, 242, 238, 0.76);
+  --lw-ink-3: rgba(241, 242, 238, 0.6);
+  --lw-line: rgba(241, 242, 238, 0.1);
+  --lw-line-strong: rgba(241, 242, 238, 0.22);
+  --lw-sun: #f08a5f; /* the one accent */
+  --lw-earth: #7fb1f0; /* Earth data hue, inside data graphics only */
+  --lw-over: #ff9a85;
+  --lw-within: #7fd497;
+  --lw-focus: #f1f2ee;
+  --lw-max: 1280px;
+  --lw-gutter: 32px;
+  --lw-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --lw-nav-h: 64px;
+
+  color-scheme: dark;
+  background: var(--lw-bg);
+  color: var(--lw-ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  overflow-x: clip;
+}
+.lw-root *:focus-visible { outline: 2px solid var(--lw-focus); outline-offset: 3px; }
+.lw-root ::selection { background: rgba(240, 138, 95, 0.35); }
+
+.lw-wrap {
+  max-width: var(--lw-max);
+  margin: 0 auto;
+  padding-left: var(--lw-gutter);
+  padding-right: var(--lw-gutter);
+}
+
+.lw-section { padding: 128px 0; scroll-margin-top: calc(var(--lw-nav-h) + var(--lw-banner-h, 0px)); }
+.lw-section + .lw-section { border-top: 1px solid var(--lw-line); }
+
+.lw-h2 {
+  margin: 0;
+  max-width: 24ch;
+  font-size: clamp(30px, 3.4vw, 46px);
+  line-height: 1.08;
+  letter-spacing: -0.028em;
+  font-weight: 640;
+  color: var(--lw-ink);
+  text-wrap: balance;
+}
+.lw-h2:focus { outline: none; }
+.lw-h2:focus-visible { outline: 2px solid var(--lw-focus); outline-offset: 6px; border-radius: 4px; }
+.lw-h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 640;
+  letter-spacing: -0.01em;
+  color: var(--lw-ink);
+}
+.lw-body { margin: 18px 0 0; max-width: 62ch; font-size: 17px; line-height: 1.6; color: var(--lw-ink-2); }
+.lw-lead { margin: 22px 0 0; max-width: 40ch; font-size: clamp(20px, 2vw, 26px); line-height: 1.4; color: var(--lw-ink); letter-spacing: -0.01em; }
+.lw-caption { margin: 14px 0 0; max-width: 90ch; font-size: 13px; line-height: 1.5; color: var(--lw-ink-3); }
+.lw-num { font-variant-numeric: tabular-nums; }
+
+/* ---------- buttons ---------- */
+.lw-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 46px; padding: 10px 18px;
+  border-radius: var(--r-ctl); border: 1px solid transparent;
+  font: inherit; font-size: 15px; font-weight: 600; line-height: 1.2; white-space: nowrap; cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+}
+.lw-btn:active { transform: translateY(1px) scale(0.99); }
+.lw-btn-sm { min-height: 38px; padding: 7px 14px; font-size: 14px; }
+.lw-btn-lg { min-height: 52px; padding: 12px 22px; font-size: 16px; }
+.lw-btn-primary { background: var(--lw-ink); color: var(--lw-bg); }
+.lw-btn-primary:hover { background: rgba(241, 242, 238, 0.86); }
+.lw-btn-primary svg { transition: transform 0.2s var(--lw-ease); }
+.lw-btn-primary:hover svg { transform: translateX(3px); }
+.lw-btn-ghost { background: rgba(241, 242, 238, 0.04); color: var(--lw-ink); border-color: var(--lw-line-strong); }
+.lw-btn-ghost:hover { background: rgba(241, 242, 238, 0.1); border-color: rgba(241, 242, 238, 0.36); }
+
+/* ---------- skeletons ---------- */
+.lw-skel { display: inline-block; border-radius: 4px; background: rgba(241, 242, 238, 0.12); vertical-align: middle; }
+.lw-skel-text { width: 7em; height: 0.95em; }
+.lw-skel-line { width: min(100%, 26em); height: 0.95em; }
+.lw-skel-num { width: 2.4ch; height: 0.6em; }
+.lw-skel-big { width: 3.2ch; height: 0.7em; }
+.lw-skel-label { width: 9em; height: 0.9em; }
+.lw-skel-bar { position: absolute; left: 0; top: 0; bottom: 0; }
+.lw-skel-block { display: block; width: 100%; height: 100%; border-radius: var(--r-panel); }
+/* Failed state: the skeleton's footprint without its placeholder fill (the data will not arrive). */
+.lw-skel-empty { display: inline-block; vertical-align: middle; }
+@media (prefers-reduced-motion: no-preference) {
+  .lw-root [aria-busy="true"] .lw-skel { animation: lw-pulse 1.6s ease-in-out infinite; }
+}
+@keyframes lw-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@keyframes lw-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes lw-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lw-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@media (max-width: 767px) {
+  .lw-root { --lw-gutter: 16px; }
+  .lw-section { padding: 80px 0; }
+  .lw-body { font-size: 16px; }
+  .lw-btn { white-space: normal; text-align: center; }
+}

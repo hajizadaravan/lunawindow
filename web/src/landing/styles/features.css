@@ -1,0 +1,98 @@
+/* ---------- what you can do: bento driven by FEATURES ---------- */
+.lw-bento {
+  list-style: none; margin: 48px 0 0; padding: 0;
+  display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px;
+}
+.lw-cell {
+  grid-column: span var(--lw-span, 6);
+  display: flex; flex-direction: column;
+  min-width: 0;
+  border-radius: var(--r-panel);
+  background: var(--lw-surface);
+  border: 1px solid var(--lw-line);
+  overflow: hidden;
+}
+.lw-cell[data-tinted="true"] {
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(240, 138, 95, 0.12), transparent 55%),
+    var(--lw-surface-2);
+}
+.lw-cell-text { padding: 22px 24px 24px; display: flex; flex-direction: column; flex: 1; }
+.lw-cell-body { margin: 8px 0 0; max-width: 48ch; font-size: 15.5px; line-height: 1.55; color: var(--lw-ink-2); }
+.lw-cell-note { margin: 10px 0 0; font-size: 14px; color: var(--lw-ink-3); }
+.lw-cell-action { margin-top: auto; padding-top: 18px; }
+
+/* Screenshot cells: the real tool, cropped to its top-left. */
+.lw-shot {
+  position: relative;
+  height: 300px;
+  overflow: hidden;
+  background: var(--lw-bg);
+  border-bottom: 1px solid var(--lw-line);
+}
+.lw-shot img {
+  position: absolute; left: 0; top: 0;
+  width: var(--lw-zoom, 100%); max-width: none; height: auto;
+  translate: var(--lw-cx, 0) var(--lw-cy, 0);
+  transform-origin: 0 0;
+  transition: transform 0.6s var(--lw-ease);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .lw-cell:hover .lw-shot img { transform: scale(1.03); }
+}
+
+/* Live delay numbers */
+.lw-delay {
+  padding: 28px 24px 22px;
+  border-bottom: 1px solid var(--lw-line);
+  background: radial-gradient(90% 120% at 0% 100%, rgba(240, 138, 95, 0.1), transparent 60%);
+  min-height: 0;
+  flex: 1;
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.lw-delay-pair { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; }
+.lw-delay-pair > div { display: flex; flex-direction: column; gap: 6px; }
+.lw-delay-k { font-size: 13px; color: var(--lw-ink-3); }
+.lw-delay-v {
+  font-variant-numeric: tabular-nums; font-size: clamp(48px, 5vw, 76px); line-height: 0.95;
+  font-weight: 650; letter-spacing: -0.04em; color: var(--lw-ink-2); min-height: 0.95em;
+}
+.lw-delay-v[data-over="true"] { color: var(--lw-over); }
+.lw-delay-arrow { color: var(--lw-ink-3); margin-bottom: 14px; }
+.lw-delay-verdict { display: flex; align-items: center; gap: 8px; margin: 18px 0 0; min-height: 1.5em; font-size: 14.5px; line-height: 1.5; font-weight: 600; }
+.lw-delay-verdict svg { flex: none; color: var(--lw-over); }
+.lw-delay-verdict svg.lw-icon-muted { color: var(--lw-ink-2); }
+.lw-delay[data-failed="true"] .lw-delay-verdict { font-weight: 500; color: var(--lw-ink-2); }
+.lw-delay-meta { margin: 6px 0 0; min-height: 3em; font-size: 13px; line-height: 1.5; color: var(--lw-ink-3); }
+.lw-cell[data-kind="delay"] .lw-cell-text { flex: none; }
+
+.lw-cell-icons { display: flex; gap: 14px; padding: 26px 24px 0; color: var(--lw-sun); }
+
+/* Planned list */
+.lw-planned {
+  margin-top: 40px; padding-top: 28px; border-top: 1px solid var(--lw-line);
+  display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 8px 48px;
+}
+.lw-planned .lw-h3 { display: flex; align-items: center; gap: 8px; }
+.lw-planned .lw-h3 svg { color: var(--lw-ink-3); }
+.lw-planned .lw-body { margin: 8px 0 0; font-size: 15px; }
+.lw-planned ul { list-style: none; margin: 0; padding: 0; }
+.lw-planned li { padding: 10px 0; font-size: 15.5px; color: var(--lw-ink-2); }
+.lw-planned li + li { border-top: 1px solid var(--lw-line); }
+
+@media (max-width: 1023px) {
+  .lw-cell { grid-column: span 6; }
+  .lw-cell[data-kind="shot"] { grid-column: span 12; }
+  .lw-cell[data-kind="delay"] { grid-column: span 12; }
+}
+@media (max-width: 767px) {
+  .lw-bento { grid-template-columns: minmax(0, 1fr); margin-top: 32px; }
+  .lw-cell, .lw-cell[data-kind] { grid-column: auto; }
+  .lw-cell-text { padding: 18px 18px 20px; }
+  .lw-delay-verdict { min-height: 3em; align-items: flex-start; }
+  .lw-delay-verdict svg { margin-top: 3px; }
+  .lw-planned { grid-template-columns: minmax(0, 1fr); }
+  .lw-planned ul { margin-top: 8px; }
+  .lw-shot { height: auto; aspect-ratio: 16 / 10; }
+  .lw-shot img { width: max(var(--lw-zoom, 100%), 680px); }
+}

@@ -192,3 +192,84 @@ The golden fixture is regenerated and reproduced exactly (to 1e-9 h) by the refe
 - **Near-field relief:** relief below 40 m around a 2 m mast is not represented (see section 5). `uncertaintyDeg` comes from the DEM's own data and is not checked against images or independent topography.
 - **Leap seconds:** Horizons UTC tags for 2027 assume no new leap second.
 - **Error-map hash:** the pinned sha256 is for the copy downloaded on 2026-11-14. There is no producer-published checksum to compare it with, and the same is true for the other rasters.
+
+## 9. Web app and landing page (2026-11-14)
+
+Measured by the integrator on the final working tree, from `web/`. The pipeline, the contract, `web/src/analysis/`
+and the generated data were not changed by this work, so `pytest` was not rerun after it (36 passed in the
+earlier run today, see the top of this file).
+
+**Commands**
+
+- `npx tsc -b`: clean.
+- `npm test` (Vitest): **9 files, 118 passed**, including `fixtures/analysis-golden.json`.
+- `npm run build`: passed.
+- `npm run test:e2e` (Playwright, Chromium): **21 passed**.
+
+| Spec | Tests |
+|---|---|
+| `landing.spec.ts` | 9 |
+| `routing.spec.ts` | 5 |
+| `hero-media.spec.ts` | 3 |
+| `flow.spec.ts` | 2 |
+| `landing-failure.spec.ts` | 2 |
+
+The earlier failure of `flow.spec.ts` on its stale `/Start 24 hours later/` checkbox locator is fixed; the test now
+uses the current label "Also check a start 24 hours later".
+
+**Hero clip.** `web/public/media/hero-loop.mp4` was generated earlier today with Higgsfield Seedance 2.5 from the
+existing poster as start frame. Local H.264 copy, no audio: 1280×720, 5.041667 s, 774,266 bytes (`ffprobe`). No
+further Higgsfield media was generated (refused from Claude Code); `docs/media-prompts.md` holds the prompt pack.
+
+**Visual pass.** An Opus lane took Playwright screenshots on real cached data and read them; the integrator checked
+the hero at 1440×900 and 1366×768, the replay, and the synthetic banner. Covered: `#/` and `#/app` at 1440, 1024 and
+390 px, OS light and dark, motion allowed and reduced.
+
+- No horizontal overflow. The landing stays dark in light mode (background rgb(10,11,13)).
+- Layout shift when data arrives: at most 0.0002.
+- Headline: 2 lines at 1440 and 1024 px, 3 lines at 390 px. No wrapped button labels at 1440 and 1024 px.
+- Replay autoplays once in view; play, pause and scrub work; reduced motion starts paused at the gap start.
+- Daily-start strips and the A/B/C map markers render. CTAs land on `#/app`. Focus ring is visible (2 px).
+
+Hero fits the first viewport (a `max-height: 820px` media block in `web/src/landing/styles/hero.css`). Lowest hero
+element against viewport height:
+
+| Viewport | Lowest element / height |
+|---|---|
+| 1440×900 | 882 / 900 |
+| 1366×768 | 756 / 768 |
+| 1280×800 | 788 / 800 |
+| 1280×720 | 708 / 720 |
+| 1024×768 | 756 / 768 |
+
+**Synthetic mode** (`npm run dev:synthetic`): the banner stays above the landing nav at scroll 0, 300, 1500 and
+4000 px, at 1440 and 390 px width.
+
+**Wording pre-flight on `web/src/landing/`:** zero em or en dashes in visible strings, zero uppercase eyebrow labels,
+no scroll listener. "landing sites" and "safe" occur only in required negations and the challenge name.
+
+**Example ties out on real data.** Demo point A, start 2027-02-10 00:00 UTC, 7 days, terrain horizon: longest Sun
+gap 0 h at baseline and 8.9 h with a 24 h delay, gap 2027-02-17 09:31 to 18:22 UTC, which exceeds the example 6 h
+limit by 2.9 h.
+
+**Reviews** (two independent Opus agents, read-only, over the uncommitted diff):
+
+- Security review, high effort, done by hand because the `security-review` skill needs an `origin` remote: nothing
+  exploitable. Hygiene note: `resume.md` is an internal handoff note with no secrets.
+- Code review, `code-review` skill at high: four correctness defects, all fixed. (1) Landing verdicts compared gap
+  hours with the limit and ignored `not-exceeded-truncated` and `indeterminate-missing-data`; they are now worded
+  from `LimitStatus` (`web/src/landing/verdict.ts`, new fields in `web/src/landing/types.ts`); no effect on the
+  current data. (2) The landing nav covered the synthetic-data banner. (3) A scroll target that never rendered stayed
+  set and blocked scroll-to-top and heading focus on later route changes. (4) Load failures showed as endless
+  `aria-busy` skeletons; now a `role="status"` message (`storyFailed`, `PointSummary.failed`). Also fixed: when the
+  selected point failed to load, the other points never loaded.
+- Not acted on, by decision: fixed "24 h" labels (approved labels, both manifests use 24 h); the "0.5 to 7.6 h"
+  sensitivity text (documented estimate, section 6); repeated analyses in `buildPoints`/`computeStrip` and
+  duplicated scroll-and-focus code (performance and cleanup, not correctness).
+- Second, narrower review pass over the fix round (two Opus sub-agents, medium effort, by hand because the round
+  has no diff baseline): security found nothing. Code found one wording defect, fixed: the `Features.tsx` delay
+  cell said "does not exceed" for a window with missing data; it now says "no Sun interruption found exceeds".
+  Not acted on: with a computed story and no replay the replay block is left out without a message, which is what
+  `web/src/landing/types.ts` defines for a null replay. The web checks above were rerun after this fix.
+
+**Not run for the web app:** contrast tooling, Lighthouse, screen-reader pass, browsers other than Chromium.

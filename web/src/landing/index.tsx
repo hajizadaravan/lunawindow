@@ -1,38 +1,63 @@
-// Landing sections shown around the tool. INTERFACE IS FIXED BY THE INTEGRATOR: the landing lane fills in the
-// bodies and may add files in this folder; App.tsx (frontend lane) mounts these two components and owns the props.
-import "./landing.css";
+// Landing page. INTERFACE IS FIXED BY THE INTEGRATOR in ./types.ts: App.tsx mounts <Landing> and owns the data;
+// every section here only renders props.
+import "./styles/base.css";
+import "./styles/nav.css";
+import "./styles/hero.css";
+import "./styles/replay.css";
+import "./styles/features.css";
+import "./styles/points.css";
+import "./styles/how.css";
+import "./styles/data.css";
+import "./styles/closing.css";
+import { useEffect, useState } from "react";
+import { Closing } from "./Closing";
+import { DataLimits } from "./DataLimits";
+import { Features } from "./Features";
 import { Hero } from "./Hero";
-import { Sections } from "./Sections";
+import { How } from "./How";
+import { useIntersection } from "./hooks";
+import { Nav } from "./Nav";
+import { Points } from "./Points";
+import { Replay } from "./Replay";
+import type { LandingProps } from "./types";
 
-/** The example scenario, computed by App from the cached dataset with the analysis module. Never hardcode these. */
-export interface DemoStory {
-  siteName: string; // e.g. "Point A"
-  startUtc: string; // ISO, baseline window start
-  durationDays: number;
-  shiftHours: number; // 24
-  limitHours: number; // example Sun limit, 6
-  baseSunGapHours: number; // longest Sun gap, baseline window
-  shiftedSunGapHours: number; // longest Sun gap, start delayed by shiftHours
-  baseEarthGapHours: number;
-  shiftedEarthGapHours: number;
-  horizonLabel: string; // active horizon mode, e.g. "Terrain horizon (LOLA 40 m)"
-}
+export type { DemoStory, LandingProps, PointSummary, StripDay, SunReplay } from "./types";
 
-export interface LandingHeroProps {
-  /** null while the dataset is loading or if the example could not be computed. */
-  story: DemoStory | null;
-  /** Applies the example scenario in the tool and scrolls to the result. */
-  onTryDemo: () => void;
-  /** Scrolls to the start-date calendar. */
-  onOpenCalendar: () => void;
-  onAssumptions: () => void;
-}
+const PAGE_BG = "#0a0b0d"; // same as --lw-bg
 
-export function LandingHero(props: LandingHeroProps) {
-  return <Hero {...props} />;
-}
+/** The landing view (route `#/`). */
+export function Landing(p: LandingProps) {
+  const [solid, setSolid] = useState(false);
+  // The nav turns solid once the top of the hero has scrolled under it (IntersectionObserver, no scroll listener).
+  const sentinelRef = useIntersection<HTMLDivElement>((inView) => setSolid(!inView), { rootMargin: "-64px 0px 0px 0px" });
 
-/** Sections below the tool: who it is for, how it works, what it does not claim. */
-export function LandingSections(props: { onAssumptions: () => void }) {
-  return <Sections {...props} />;
+  // The landing is one dark page in both OS themes: keep overscroll and the area behind it dark too.
+  useEffect(() => {
+    const prev = document.body.style.backgroundColor;
+    document.body.style.backgroundColor = PAGE_BG;
+    return () => {
+      document.body.style.backgroundColor = prev;
+    };
+  }, []);
+
+  return (
+    <div className="lw-root">
+      <Nav solid={solid} onOpenTool={p.onOpenTool} />
+      <main>
+        <Hero story={p.story} storyFailed={p.storyFailed} onTryDemo={p.onTryDemo} onOpenCalendar={p.onOpenCalendar} sentinelRef={sentinelRef} />
+        <Replay replay={p.replay} story={p.story} storyFailed={p.storyFailed} />
+        <Features story={p.story} storyFailed={p.storyFailed} example={p.example} onTryDemo={p.onTryDemo} onOpenCalendar={p.onOpenCalendar} />
+        <Points
+          manifest={p.manifest}
+          points={p.points}
+          story={p.story}
+          example={p.example}
+          onOpenCalendar={p.onOpenCalendar}
+        />
+        <How />
+        <DataLimits onAssumptions={p.onAssumptions} />
+      </main>
+      <Closing onOpenTool={p.onOpenTool} />
+    </div>
+  );
 }

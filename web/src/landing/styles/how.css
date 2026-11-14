@@ -1,0 +1,26 @@
+/* ---------- who it is for + how it works: wide statement, then a rail ---------- */
+.lw-audience { max-width: 880px; }
+.lw-audience-icon { color: var(--lw-sun); margin-bottom: 20px; display: block; }
+.lw-audience .lw-h2 { max-width: 22ch; }
+
+.lw-steps-title { margin-top: 72px; color: var(--lw-ink-2); font-weight: 600; font-size: 16px; }
+.lw-step-list {
+  list-style: none; margin: 40px 0 0; padding: 0;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 40px;
+}
+.lw-step { position: relative; padding-top: 40px; border-top: 1px solid var(--lw-line-strong); }
+.lw-step-icon {
+  position: absolute; top: -21px; left: 0;
+  display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%;
+  background: var(--lw-bg); border: 1px solid var(--lw-line-strong); color: var(--lw-ink);
+}
+.lw-step:last-child .lw-step-icon { background: var(--lw-ink); color: var(--lw-bg); border-color: var(--lw-ink); }
+.lw-step .lw-body { max-width: 34ch; font-size: 15.5px; margin-top: 10px; }
+
+@media (max-width: 767px) {
+  .lw-steps-title { margin-top: 56px; }
+  .lw-step-list { grid-template-columns: minmax(0, 1fr); gap: 0; margin-top: 28px; }
+  .lw-step { border-top: 0; border-left: 1px solid var(--lw-line-strong); padding: 2px 0 32px 36px; margin-left: 21px; }
+  .lw-step:last-child { padding-bottom: 0; }
+  .lw-step-icon { top: 0; left: -21px; }
+}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowCounterClockwise, Flask, Info, Warning, WarningOctagon } from "@phosphor-icons/react";
-import type { AnalysisResult, HorizonInput, Manifest } from "./contract/types";
+import { ArrowCounterClockwise, ArrowLeft, Flask, Info, Warning, WarningOctagon } from "@phosphor-icons/react";
+import type { AnalysisResult, HorizonInput, Manifest, SiteDataset } from "./contract/types";
 import { analyzeVisibility, toIso } from "./analysis/visibility";
 import { clampStart, durationOnGrid, startBounds } from "./analysis/window";
 import { fmtUtc } from "./analysis/format";
@@ -15,7 +15,9 @@ import { Comparison } from "./components/Comparison";
 import { AssumptionsDialog } from "./components/AssumptionsDialog";
 import { Headline } from "./components/Headline";
 import { StartCalendar, type SiteState } from "./components/StartCalendar";
-import { LandingHero, LandingSections, type DemoStory } from "./landing";
+import { Landing, type DemoStory, type StripDay } from "./landing";
+import { buildPoints, computeReplay, computeStory, computeStrip, type ExampleInputs } from "./lib/landingData";
+import { navigate, ROUTE_TITLE, useRoute } from "./lib/route";
 
 const MS_PER_HOUR = 3_600_000;
 const DAY_MS = 86_400_000;
@@ -54,7 +56,25 @@ function scrollToId(id: string) {
   return true;
 }
 
+/**
+ * Ref callback for the synthetic-data banner: publishes its height as --lw-banner-h so the landing's sticky nav sits
+ * directly below it (landing/styles/nav.css). Without a banner the variable is unset and the nav stays at top 0.
+ */
+function trackBannerHeight(el: HTMLDivElement | null) {
+  if (!el) return;
+  const root = document.documentElement;
+  const set = () => root.style.setProperty("--lw-banner-h", `${el.getBoundingClientRect().height}px`);
+  set();
+  const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(set);
+  ro?.observe(el);
+  return () => {
+    ro?.disconnect();
+    root.style.removeProperty("--lw-banner-h");
+  };
+}
+
 export function App() {
+  const route = useRoute();
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [manifestError, setManifestError] = useState<string | null>(null);
   const [siteId, setSiteId] = useState<string | null>(null);
@@ -112,12 +132,15 @@ export function App() {
   const siteState = siteId ? sites[siteId] : undefined;
   const site = siteState?.status === "ok" ? siteState.data : null;
 
-  // The other points (for the calendar) load only after the selected one is on screen.
+  // The other points (for the calendar) load only after the selected one is on screen, or has failed to load (else
+  // a failed selected point would leave every other point loading forever). The selected point is requested by the
+  // effect above only, so a failed one is not retried in a loop from here.
+  const selectedSettled = Boolean(site) || siteState?.status === "error";
   useEffect(() => {
-    if (!manifest || !site) return;
-    const t = window.setTimeout(() => manifest.sites.forEach((s) => requestSite(s.id)), 50);
+    if (!manifest || !selectedSettled) return;
+    const t = window.setTimeout(() => manifest.sites.forEach((s) => s.id !== siteId && requestSite(s.id)), 50);
     return () => window.clearTimeout(t);
-  }, [manifest, site, requestSite]);
+  }, [manifest, selectedSettled, siteId, requestSite]);
 
   const shiftHours = manifest?.defaults.shiftHours ?? 24;
 
@@ -163,42 +186,75 @@ export function App() {
     }
   }, [site, horizon, startMs, durationHours, durationOk, sunLimit.value, earthLimit.value, shiftHours]);
 
-  // The landing story: the example scenario computed from the demo-a dataset with the analysis module.
+  // Landing data: the example scenario evaluated with the analysis module (src/lib/landingData.ts).
+  const exampleInputs: ExampleInputs | null = useMemo(
+    () =>
+      manifest
+        ? {
+            siteId: EXAMPLE.siteId,
+            startUtc: EXAMPLE.startUtc,
+            durationHours: EXAMPLE.durationHours,
+            shiftHours: manifest.defaults.shiftHours,
+            sunLimitHours: Number(EXAMPLE.limits.sun),
+          }
+        : null,
+    [manifest],
+  );
   const exampleState = sites[EXAMPLE.siteId];
-  const story: DemoStory | null = useMemo(() => {
-    if (!manifest || exampleState?.status !== "ok") return null;
-    const s = exampleState.data;
-    const h: HorizonInput = s.horizons.terrain ?? s.horizons.geometric;
-    const label = s.horizons.terrain ? s.horizons.terrain.label : s.horizons.geometric.label;
-    const limit = Number(EXAMPLE.limits.sun);
-    const sh = manifest.defaults.shiftHours;
-    try {
-      const run = (offsetH: number, body: "sun" | "earth") =>
-        analyzeVisibility({
-          time: s.time,
-          track: s.ephemeris.bodies[body],
-          horizon: h,
-          body,
-          windowStartUtc: toIso(Date.parse(EXAMPLE.startUtc) + offsetH * MS_PER_HOUR),
-          durationHours: EXAMPLE.durationHours,
-          limitHours: body === "sun" ? limit : null,
-        }).longestInterruption?.durationHours ?? 0;
-      return {
-        siteName: s.site.name,
-        startUtc: toIso(Date.parse(EXAMPLE.startUtc)),
-        durationDays: EXAMPLE.durationHours / 24,
-        shiftHours: sh,
-        limitHours: limit,
-        baseSunGapHours: run(0, "sun"),
-        shiftedSunGapHours: run(sh, "sun"),
-        baseEarthGapHours: run(0, "earth"),
-        shiftedEarthGapHours: run(sh, "earth"),
-        horizonLabel: label,
-      };
-    } catch {
-      return null;
-    }
-  }, [manifest, exampleState]);
+  const exampleData = exampleState?.status === "ok" ? exampleState.data : null;
+  const story: DemoStory | null = useMemo(
+    () => (exampleInputs && exampleData ? computeStory(exampleData, exampleInputs) : null),
+    [exampleInputs, exampleData],
+  );
+  const replay = useMemo(
+    () => (exampleInputs && exampleData ? computeReplay(exampleData, exampleInputs) : null),
+    [exampleInputs, exampleData],
+  );
+  // The example will never arrive: its point is missing from the manifest, failed to load, or could not be computed.
+  const storyFailed = Boolean(
+    manifest &&
+      (!manifest.sites.some((s) => s.id === EXAMPLE.siteId) ||
+        exampleState?.status === "error" ||
+        (exampleData && exampleInputs && story === null)),
+  );
+  const loadFailed = useMemo(() => {
+    const out: Record<string, boolean> = {};
+    for (const [id, st] of Object.entries(sites)) if (st.status === "error") out[id] = true;
+    return out;
+  }, [sites]);
+  const loadedSites = useMemo(() => {
+    const out: Record<string, SiteDataset> = {};
+    for (const [id, st] of Object.entries(sites)) if (st.status === "ok") out[id] = st.data;
+    return out;
+  }, [sites]);
+  // The strips (about 80 analysis runs per point) are computed one point at a time after paint, only while the
+  // landing is shown, and kept: a loaded dataset never changes.
+  const [strips, setStrips] = useState<Record<string, StripDay[] | null>>({});
+  useEffect(() => {
+    if (route !== "landing" || !manifest || !exampleInputs) return;
+    const next = manifest.sites.find((e) => loadedSites[e.id] && !(e.id in strips));
+    if (!next) return;
+    let timer = 0;
+    const frame = window.requestAnimationFrame(() => {
+      timer = window.setTimeout(() => {
+        let strip: StripDay[] | null;
+        try {
+          strip = computeStrip(manifest, loadedSites[next.id], exampleInputs);
+        } catch {
+          strip = null;
+        }
+        setStrips((prev) => ({ ...prev, [next.id]: strip }));
+      }, 0);
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [route, manifest, exampleInputs, loadedSites, strips]);
+  const points = useMemo(
+    () => (manifest && exampleInputs ? buildPoints(manifest, loadedSites, strips, exampleInputs, loadFailed) : []),
+    [manifest, exampleInputs, loadedSites, strips, loadFailed],
+  );
 
   const sampleCount = site ? Math.round((durationHours * 3600) / site.time.stepSeconds) + 1 : 1;
   useEffect(() => {
@@ -208,11 +264,50 @@ export function App() {
   // (reading past the dataset and crashing the page). Everything below uses the clamped value.
   const cursorInWindow = Math.max(0, Math.min(cursor, sampleCount - 1));
 
-  // Scroll after the state change has rendered the target.
+  // Scroll after the state change has rendered the target (targets live in the tool view). A target that cannot
+  // appear (the selected point failed to load, so neither the result nor the calendar renders) is dropped, and the
+  // view falls back to what a plain route change does: top of the page, focus on the main heading.
+  const selectedFailed = siteState?.status === "error";
   useEffect(() => {
-    if (!scrollTarget) return;
-    if (scrollToId(scrollTarget)) setScrollTarget(null);
-  }, [scrollTarget, analysis]);
+    if (!scrollTarget || route !== "app") return;
+    if (scrollToId(scrollTarget)) {
+      setScrollTarget(null);
+      return;
+    }
+    // loadingRef: a retry of the failed point started in this same commit (requestSite runs in an earlier effect).
+    if (selectedFailed && !(siteId && loadingRef.current.has(siteId))) {
+      setScrollTarget(null);
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      document.querySelector<HTMLElement>("h1")?.focus({ preventScroll: true });
+    }
+  }, [scrollTarget, analysis, route, selectedFailed, siteId]);
+
+  useEffect(() => {
+    document.title = ROUTE_TITLE[route];
+  }, [route]);
+
+  // On a route change (not on first load): back to the top and focus on the view's main heading, unless a scroll
+  // target is pending (the effect above has then already scrolled to it and focused it).
+  const shownRoute = useRef(route);
+  useEffect(() => {
+    if (shownRoute.current === route) return;
+    shownRoute.current = route;
+    // Targets live in the tool view: leaving it drops any target still pending, so it cannot block later changes.
+    if (route !== "app") {
+      if (scrollTarget) setScrollTarget(null);
+    } else if (scrollTarget) return;
+    const toTop = () => window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    toTop();
+    // A smooth scroll still running in the previous view can land one frame later; reset again after it.
+    const frame = window.requestAnimationFrame(toTop);
+    const heading = document.querySelector<HTMLElement>("h1");
+    if (heading) {
+      if (!heading.hasAttribute("tabindex")) heading.setAttribute("tabindex", "-1");
+      heading.focus({ preventScroll: true });
+    }
+    return () => window.cancelAnimationFrame(frame);
+    // Only the route change triggers this; scrollTarget is read as of that render.
+  }, [route]);
 
   const exampleAvailable = Boolean(manifest?.sites.some((s) => s.id === EXAMPLE.siteId));
   const applyExample = useCallback(() => {
@@ -275,270 +370,301 @@ export function App() {
     compare === EXAMPLE.compare;
   const timeOfDayMs = startMs !== null ? ((startMs % DAY_MS) + DAY_MS) % DAY_MS : 0;
 
+  const onTryDemo = () => {
+    if (exampleAvailable) applyExample();
+    navigate("app");
+  };
+  const onOpenCalendar = () => {
+    setScrollTarget("calendar");
+    navigate("app");
+  };
+  const onOpenTool = () => {
+    setScrollTarget(null);
+    navigate("app");
+  };
+
   return (
     <>
       {anySynthetic && (
-        <div className="synthetic-banner" role="status" data-testid="synthetic-banner">
+        <div className="synthetic-banner" role="status" data-testid="synthetic-banner" ref={trackBannerHeight}>
           <Warning size={18} weight="bold" aria-hidden />
           Synthetic test data, not NASA measurements. Every number on this page is made up for interface testing.
         </div>
       )}
-      <header className="topbar">
-        <div className="brand">
-          <h1>LunaWindow</h1>
-          <p>Longest continuous loss of Sun or Earth visibility at lunar south-pole demonstration points</p>
-        </div>
-        <button className="btn" type="button" onClick={openAssumptions}>
-          <Info size={16} weight="bold" aria-hidden />
-          Assumptions &amp; sources
-        </button>
-      </header>
-
-      <LandingHero
-        story={story}
-        onTryDemo={applyExample}
-        onOpenCalendar={() => setScrollTarget("calendar")}
-        onAssumptions={openAssumptions}
-      />
-
-      <div className="tool" id="tool">
-        <section className="panel scenario" aria-labelledby="scenario-h" data-testid="scenario">
-          <div className="scenario-head">
-            <h2 id="scenario-h">Mission scenario</h2>
-            {isExample ? (
-              <span className="example-tag" data-testid="example-tag">
-                <Flask size={14} weight="bold" aria-hidden />
-                Example scenario
-                <button type="button" className="btn link" onClick={clearExample}>
-                  <ArrowCounterClockwise size={13} weight="bold" aria-hidden />
-                  Clear example
-                </button>
-              </span>
-            ) : (
-              exampleAvailable && (
-                <button type="button" className="btn" onClick={applyExample} data-testid="try-delay">
-                  <Flask size={15} weight="bold" aria-hidden />
-                  Try a 24 h delay
-                </button>
-              )
-            )}
-          </div>
-          <div className="scenario-grid">
-            <div className="field f-site">
-              <label htmlFor="site-select">Demonstration point</label>
-              <select id="site-select" value={entry.id} onChange={(e) => setSiteId(e.target.value)}>
-                {manifest.sites.map((s, i) => (
-                  <option key={s.id} value={s.id}>
-                    {String.fromCharCode(65 + i)}. {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <MissionForm
-              manifest={manifest}
-              bounds={bounds}
-              startMs={startMs}
-              durationHours={durationHours}
-              shiftHours={shiftHours}
-              stepSeconds={site?.time.stepSeconds ?? manifest.supportedRange.stepSeconds}
-              onStart={(ms) => setRequestedStartMs(ms)}
-              onDuration={setDurationHours}
-              limits={limits}
-              limitErrors={{ sun: sunLimit.error, earth: earthLimit.error }}
-              onLimits={setLimits}
-            />
-            <div className="field f-horizon">
-              <span className="label" id="horizon-h">
-                Horizon model
-              </span>
-              <HorizonSwitch
-                mode={effectiveMode}
-                onChange={setMode}
-                terrainAvailable={terrainAvailable}
-                siteLoaded={Boolean(site)}
-                siteName={entry.name}
-              />
-            </div>
-            <div className="field f-compare">
-              <span className="label">Delay check</span>
-              <label className="toggle">
-                <input type="checkbox" checked={compare} onChange={(e) => setCompare(e.target.checked)} />
-                Also check a start {shiftHours} hours later
-              </label>
-            </div>
-          </div>
-          <p id="start-help" className="hint">
-            {bounds ? (
-              <>
-                Allowed starts <span className="num">{fmtUtc(bounds.earliestMs)}</span> to{" "}
-                <span className="num">{fmtUtc(bounds.latestMs)}</span> (the window plus {shiftHours} h stays inside the data
-                range).
-              </>
-            ) : (
-              "Waiting for site data."
-            )}{" "}
-            <span id="limits-help">Limits are your own tolerances, not computed battery or radio budgets.</span>
-          </p>
-          {adjusted && startMs !== null && (
-            <div className="notice info" role="status">
-              <Info size={16} weight="bold" aria-hidden />
-              <span>
-                Start moved to <span className="num">{fmtUtc(startMs)}</span> to stay inside the allowed range.
-              </span>
-            </div>
-          )}
-        </section>
-
-        <div className="tool-grid">
-          <main className="main" id="results" aria-label="Results">
-            {siteState?.status === "error" && (
-              <div className="notice error" role="alert">
-                <WarningOctagon size={18} weight="bold" aria-hidden />
-                <span>
-                  Could not load {entry.name}: {siteState.message}{" "}
-                  <button
-                    className="btn link"
-                    type="button"
-                    onClick={() => {
-                      loadingRef.current.delete(entry.id);
-                      requestSite(entry.id);
-                    }}
-                  >
-                    Retry
-                  </button>
-                </span>
-              </div>
-            )}
-            {(!siteState || siteState.status === "loading") && (
-              <div aria-busy="true">
-                <span className="sr-only">Loading {entry.name}</span>
-                <div className="skeleton" style={{ height: 180, marginBottom: 16 }} />
-                <div className="skeleton" style={{ height: 280 }} />
-              </div>
-            )}
-            {site && !bounds && (
-              <div className="notice error" role="alert">
-                <WarningOctagon size={18} weight="bold" aria-hidden />
-                <span>
-                  The data range for {entry.name} is too short for a {durationHours / 24}-day window plus the {shiftHours} h
-                  comparison. Choose a shorter duration.
-                </span>
-              </div>
-            )}
-            {site && !durationOk && (
-              <div className="notice error" role="alert">
-                <WarningOctagon size={18} weight="bold" aria-hidden />
-                <span>The selected duration is not a whole number of {site.time.stepSeconds} s data steps.</span>
-              </div>
-            )}
-            {analysis?.error && (
-              <div className="notice error" role="alert">
-                <WarningOctagon size={18} weight="bold" aria-hidden />
-                <span>Analysis could not run: {analysis.error}</span>
-              </div>
-            )}
-            {site && horizon && analysis?.base && analysis.shifted && startMs !== null && (
-              <>
-                <div id="result" className="result-anchor">
-                  {mode === "terrain" && !terrainAvailable && (
-                    <div className="notice" role="status" style={{ marginBottom: 12 }}>
-                      <Info size={16} weight="bold" aria-hidden />
-                      <span>
-                        No terrain horizon exists for {site.site.name}, so these results use the geometric reference
-                        horizon (no terrain).
-                      </span>
-                    </div>
-                  )}
-                  <Headline
-                    siteName={site.site.name}
-                    base={analysis.base}
-                    shifted={compare ? analysis.shifted : null}
-                    shiftHours={shiftHours}
-                    durationHours={durationHours}
-                    horizon={horizon}
-                    onAssumptions={openAssumptions}
-                  />
-                </div>
-
-                <HorizonView
-                  site={site}
-                  horizon={horizon}
-                  windowStartMs={startMs}
-                  sampleCount={sampleCount}
-                  cursor={cursorInWindow}
-                  bands={{ sun: analysis.base.sun.nearHorizonBandDeg, earth: analysis.base.earth.nearHorizonBandDeg }}
-                  onAssumptions={openAssumptions}
-                />
-
-                <Timelines
-                  sun={analysis.base.sun}
-                  earth={analysis.base.earth}
-                  site={site}
-                  horizon={horizon}
-                  cursor={cursorInWindow}
-                  onCursor={setCursor}
-                  sampleCount={sampleCount}
-                  onAssumptions={openAssumptions}
-                />
-
-                <section className="panel window-panel" aria-label="Selected analysis interval">
-                  <p className="window-line">
-                    Selected analysis interval: <span className="num">{fmtUtc(analysis.base.sun.windowStartUtc)}</span> to{" "}
-                    <span className="num">{fmtUtc(analysis.base.sun.windowEndUtc)}</span> ({durationHours / 24} days),{" "}
-                    {site.site.name} ({site.site.locationHint})
-                  </p>
-                </section>
-
-                <div className="cards">
-                  <BodyCard result={analysis.base.sun} horizon={horizon} onAssumptions={openAssumptions} />
-                  <BodyCard result={analysis.base.earth} horizon={horizon} onAssumptions={openAssumptions} />
-                </div>
-
-                {compare && (
-                  <Comparison
-                    shiftHours={shiftHours}
-                    base={analysis.base}
-                    shifted={analysis.shifted}
-                    horizon={horizon}
-                    onAssumptions={openAssumptions}
-                  />
-                )}
-              </>
-            )}
-          </main>
-          <aside className="aside" aria-label="Map of the demonstration points">
-            <SitePicker manifest={manifest} selectedId={entry.id} onSelect={setSiteId} />
-          </aside>
-        </div>
-
-        <StartCalendar
+      {route === "landing" ? (
+        <Landing
           manifest={manifest}
-          sites={sites}
-          mode={mode}
-          durationHours={durationHours}
-          shiftHours={shiftHours}
-          checkShift={compare}
-          onCheckShift={setCompare}
-          limits={parsedLimits}
-          timeOfDayMs={timeOfDayMs}
-          selectedSiteId={entry.id}
-          selectedStartMs={startMs}
-          onSelect={(id, ms) => {
-            setSiteId(id);
-            setRequestedStartMs(ms);
-            setCursor(0);
-            setScrollTarget("result");
+          story={story}
+          storyFailed={storyFailed}
+          points={points}
+          replay={replay}
+          example={{
+            durationDays: EXAMPLE.durationHours / 24,
+            shiftHours: manifest.defaults.shiftHours,
+            sunLimitHours: Number(EXAMPLE.limits.sun),
           }}
-          onEditLimits={() => {
-            const el = document.getElementById("limit-sun");
-            el?.scrollIntoView({ block: "center" });
-            el?.focus({ preventScroll: true });
-          }}
+          onTryDemo={onTryDemo}
+          onOpenCalendar={onOpenCalendar}
+          onOpenTool={onOpenTool}
           onAssumptions={openAssumptions}
         />
-      </div>
+      ) : (
+        <>
+          <header className="topbar">
+            <div className="brand">
+              <h1 tabIndex={-1}>LunaWindow</h1>
+              <p>Longest continuous loss of Sun or Earth visibility at lunar south-pole demonstration points</p>
+            </div>
+            <nav className="topbar-actions" aria-label="LunaWindow">
+              <a className="btn" href="#/">
+                <ArrowLeft size={16} weight="bold" aria-hidden />
+                About LunaWindow
+              </a>
+              <button className="btn" type="button" onClick={openAssumptions}>
+                <Info size={16} weight="bold" aria-hidden />
+                Assumptions &amp; sources
+              </button>
+            </nav>
+          </header>
 
-      <LandingSections onAssumptions={openAssumptions} />
+          <div className="tool" id="tool">
+            <section className="panel scenario" aria-labelledby="scenario-h" data-testid="scenario">
+              <div className="scenario-head">
+                <h2 id="scenario-h">Mission scenario</h2>
+                {isExample ? (
+                  <span className="example-tag" data-testid="example-tag">
+                    <Flask size={14} weight="bold" aria-hidden />
+                    Example scenario
+                    <button type="button" className="btn link" onClick={clearExample}>
+                      <ArrowCounterClockwise size={13} weight="bold" aria-hidden />
+                      Clear example
+                    </button>
+                  </span>
+                ) : (
+                  exampleAvailable && (
+                    <button type="button" className="btn" onClick={applyExample} data-testid="try-delay">
+                      <Flask size={15} weight="bold" aria-hidden />
+                      Try a 24 h delay
+                    </button>
+                  )
+                )}
+              </div>
+              <div className="scenario-grid">
+                <div className="field f-site">
+                  <label htmlFor="site-select">Demonstration point</label>
+                  <select id="site-select" value={entry.id} onChange={(e) => setSiteId(e.target.value)}>
+                    {manifest.sites.map((s, i) => (
+                      <option key={s.id} value={s.id}>
+                        {String.fromCharCode(65 + i)}. {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <MissionForm
+                  manifest={manifest}
+                  bounds={bounds}
+                  startMs={startMs}
+                  durationHours={durationHours}
+                  shiftHours={shiftHours}
+                  stepSeconds={site?.time.stepSeconds ?? manifest.supportedRange.stepSeconds}
+                  onStart={(ms) => setRequestedStartMs(ms)}
+                  onDuration={setDurationHours}
+                  limits={limits}
+                  limitErrors={{ sun: sunLimit.error, earth: earthLimit.error }}
+                  onLimits={setLimits}
+                />
+                <div className="field f-horizon">
+                  <span className="label" id="horizon-h">
+                    Horizon model
+                  </span>
+                  <HorizonSwitch
+                    mode={effectiveMode}
+                    onChange={setMode}
+                    terrainAvailable={terrainAvailable}
+                    siteLoaded={Boolean(site)}
+                    siteName={entry.name}
+                  />
+                </div>
+                <div className="field f-compare">
+                  <span className="label">Delay check</span>
+                  <label className="toggle">
+                    <input type="checkbox" checked={compare} onChange={(e) => setCompare(e.target.checked)} />
+                    Also check a start {shiftHours} hours later
+                  </label>
+                </div>
+              </div>
+              <p id="start-help" className="hint">
+                {bounds ? (
+                  <>
+                    Allowed starts <span className="num">{fmtUtc(bounds.earliestMs)}</span> to{" "}
+                    <span className="num">{fmtUtc(bounds.latestMs)}</span> (the window plus {shiftHours} h stays inside the data
+                    range).
+                  </>
+                ) : (
+                  "Waiting for site data."
+                )}{" "}
+                <span id="limits-help">Limits are your own tolerances, not computed battery or radio budgets.</span>
+              </p>
+              {adjusted && startMs !== null && (
+                <div className="notice info" role="status">
+                  <Info size={16} weight="bold" aria-hidden />
+                  <span>
+                    Start moved to <span className="num">{fmtUtc(startMs)}</span> to stay inside the allowed range.
+                  </span>
+                </div>
+              )}
+            </section>
+
+            <div className="tool-grid">
+              <main className="main" id="results" aria-label="Results">
+                {siteState?.status === "error" && (
+                  <div className="notice error" role="alert">
+                    <WarningOctagon size={18} weight="bold" aria-hidden />
+                    <span>
+                      Could not load {entry.name}: {siteState.message}{" "}
+                      <button
+                        className="btn link"
+                        type="button"
+                        onClick={() => {
+                          loadingRef.current.delete(entry.id);
+                          requestSite(entry.id);
+                        }}
+                      >
+                        Retry
+                      </button>
+                    </span>
+                  </div>
+                )}
+                {(!siteState || siteState.status === "loading") && (
+                  <div aria-busy="true">
+                    <span className="sr-only">Loading {entry.name}</span>
+                    <div className="skeleton" style={{ height: 180, marginBottom: 16 }} />
+                    <div className="skeleton" style={{ height: 280 }} />
+                  </div>
+                )}
+                {site && !bounds && (
+                  <div className="notice error" role="alert">
+                    <WarningOctagon size={18} weight="bold" aria-hidden />
+                    <span>
+                      The data range for {entry.name} is too short for a {durationHours / 24}-day window plus the {shiftHours} h
+                      comparison. Choose a shorter duration.
+                    </span>
+                  </div>
+                )}
+                {site && !durationOk && (
+                  <div className="notice error" role="alert">
+                    <WarningOctagon size={18} weight="bold" aria-hidden />
+                    <span>The selected duration is not a whole number of {site.time.stepSeconds} s data steps.</span>
+                  </div>
+                )}
+                {analysis?.error && (
+                  <div className="notice error" role="alert">
+                    <WarningOctagon size={18} weight="bold" aria-hidden />
+                    <span>Analysis could not run: {analysis.error}</span>
+                  </div>
+                )}
+                {site && horizon && analysis?.base && analysis.shifted && startMs !== null && (
+                  <>
+                    <div id="result" className="result-anchor">
+                      {mode === "terrain" && !terrainAvailable && (
+                        <div className="notice" role="status" style={{ marginBottom: 12 }}>
+                          <Info size={16} weight="bold" aria-hidden />
+                          <span>
+                            No terrain horizon exists for {site.site.name}, so these results use the geometric reference
+                            horizon (no terrain).
+                          </span>
+                        </div>
+                      )}
+                      <Headline
+                        siteName={site.site.name}
+                        base={analysis.base}
+                        shifted={compare ? analysis.shifted : null}
+                        shiftHours={shiftHours}
+                        durationHours={durationHours}
+                        horizon={horizon}
+                        onAssumptions={openAssumptions}
+                      />
+                    </div>
+
+                    <HorizonView
+                      site={site}
+                      horizon={horizon}
+                      windowStartMs={startMs}
+                      sampleCount={sampleCount}
+                      cursor={cursorInWindow}
+                      bands={{ sun: analysis.base.sun.nearHorizonBandDeg, earth: analysis.base.earth.nearHorizonBandDeg }}
+                      onAssumptions={openAssumptions}
+                    />
+
+                    <Timelines
+                      sun={analysis.base.sun}
+                      earth={analysis.base.earth}
+                      site={site}
+                      horizon={horizon}
+                      cursor={cursorInWindow}
+                      onCursor={setCursor}
+                      sampleCount={sampleCount}
+                      onAssumptions={openAssumptions}
+                    />
+
+                    <section className="panel window-panel" aria-label="Selected analysis interval">
+                      <p className="window-line">
+                        Selected analysis interval: <span className="num">{fmtUtc(analysis.base.sun.windowStartUtc)}</span> to{" "}
+                        <span className="num">{fmtUtc(analysis.base.sun.windowEndUtc)}</span> ({durationHours / 24} days),{" "}
+                        {site.site.name} ({site.site.locationHint})
+                      </p>
+                    </section>
+
+                    <div className="cards">
+                      <BodyCard result={analysis.base.sun} horizon={horizon} onAssumptions={openAssumptions} />
+                      <BodyCard result={analysis.base.earth} horizon={horizon} onAssumptions={openAssumptions} />
+                    </div>
+
+                    {compare && (
+                      <Comparison
+                        shiftHours={shiftHours}
+                        base={analysis.base}
+                        shifted={analysis.shifted}
+                        horizon={horizon}
+                        onAssumptions={openAssumptions}
+                      />
+                    )}
+                  </>
+                )}
+              </main>
+              <aside className="aside" aria-label="Map of the demonstration points">
+                <SitePicker manifest={manifest} selectedId={entry.id} onSelect={setSiteId} />
+              </aside>
+            </div>
+
+            <StartCalendar
+              manifest={manifest}
+              sites={sites}
+              mode={mode}
+              durationHours={durationHours}
+              shiftHours={shiftHours}
+              checkShift={compare}
+              onCheckShift={setCompare}
+              limits={parsedLimits}
+              timeOfDayMs={timeOfDayMs}
+              selectedSiteId={entry.id}
+              selectedStartMs={startMs}
+              onSelect={(id, ms) => {
+                setSiteId(id);
+                setRequestedStartMs(ms);
+                setCursor(0);
+                setScrollTarget("result");
+              }}
+              onEditLimits={() => {
+                const el = document.getElementById("limit-sun");
+                el?.scrollIntoView({ block: "center" });
+                el?.focus({ preventScroll: true });
+              }}
+              onAssumptions={openAssumptions}
+            />
+          </div>
+        </>
+      )}
 
       <AssumptionsDialog
         open={assumptionsOpen}

@@ -1,0 +1,41 @@
+/* ---------- nav: sticky, one line, transparent over the top of the hero ---------- */
+.lw-nav {
+  /* --lw-banner-h: height of the synthetic-data banner when it is shown (App.tsx), else unset. */
+  position: sticky; top: var(--lw-banner-h, 0px); z-index: 30;
+  height: var(--lw-nav-h);
+  margin-bottom: calc(-1 * var(--lw-nav-h)); /* the hero starts under it */
+  background: transparent;
+  border-bottom: 1px solid transparent;
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+.lw-nav[data-solid="true"] { background: rgba(19, 20, 23, 0.94); border-bottom-color: var(--lw-line); }
+@supports (backdrop-filter: blur(1px)) {
+  .lw-nav[data-solid="true"] { background: rgba(19, 20, 23, 0.8); backdrop-filter: blur(14px) saturate(140%); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .lw-nav[data-solid="true"] { background: var(--lw-surface); backdrop-filter: none; }
+}
+.lw-nav-inner { height: 100%; display: flex; align-items: center; gap: 28px; }
+.lw-wordmark {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-size: 17px; font-weight: 680; letter-spacing: -0.015em; color: var(--lw-ink); white-space: nowrap;
+}
+.lw-mark { flex: none; color: var(--lw-ink); }
+.lw-nav-links { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+.lw-nav-link {
+  border: 0; background: none; cursor: pointer;
+  padding: 8px 12px; border-radius: var(--r-ctl);
+  font: inherit; font-size: 14px; font-weight: 500; color: var(--lw-ink-2); white-space: nowrap;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.lw-nav-link:hover { color: var(--lw-ink); background: rgba(241, 242, 238, 0.07); }
+.lw-nav .lw-btn { flex: none; }
+
+@media (max-width: 1023px) {
+  .lw-nav-link { padding: 8px 8px; font-size: 13.5px; }
+  .lw-nav-inner { gap: 16px; }
+}
+@media (max-width: 899px) {
+  .lw-nav-links { display: none; }
+  .lw-nav .lw-btn { margin-left: auto; }
+}
