@@ -59,7 +59,7 @@ test("scene state follows the analysis at a real Sun-centre loss, and the shared
   const time = page.getByTestId("terrain-time-readout");
   const cursorReadout = page.getByTestId("cursor-readout");
   await expect(page.getByTestId("terrain-panel")).toContainText("Horizon: Terrain (LOLA)");
-  await expect(page.getByTestId("terrain-panel")).toContainText("Cast shadows are not simulated");
+  await expect(page.getByTestId("terrain-panel")).toContainText("Sunlight and cast shadows come from the drawn 3D surface");
 
   // The strip shows the same loss as the timelines.
   await expect(page.getByTestId("terrain-strip").locator('g[data-body="sun"] rect[data-state="blocked"]').first()).toBeAttached();
@@ -71,6 +71,9 @@ test("scene state follows the analysis at a real Sun-centre loss, and the shared
   await expect(canvas(page)).toHaveAttribute("data-sun-state", "visible");
   await expect(cursorReadout).toContainText("Sun visible");
   await expect(page.getByTestId("time-cursor")).toHaveAttribute("aria-valuenow", String(LAST_VISIBLE));
+  // The drawn surface agrees with the result here...
+  await expect(canvas(page)).toHaveAttribute("data-sun-surface", "agrees");
+  await expect(page.getByTestId("terrain-surface-sun")).toHaveAttribute("data-surface", "agrees");
 
   await page.keyboard.press("ArrowRight");
   await expect(time).toHaveText(`${DATE} 09:40 UTC`);
@@ -79,6 +82,15 @@ test("scene state follows the analysis at a real Sun-centre loss, and the shared
   await expect(canvas(page)).toHaveAttribute("data-sun-state", "blocked");
   await expect(cursorReadout).toContainText("Sun blocked");
   await expect(page.getByTestId("horizon-readout")).toContainText(`${DATE} 09:40 UTC`);
+  // ...and not one sample later: the mesh skyline (−0.763°) leaves the Sun centre (−0.750°) clear on screen while the
+  // analysis horizon (−0.746°) blocks it. The view says so on the ray and in the readout; the state stays blocked.
+  await expect(canvas(page)).toHaveAttribute("data-sun-surface", "differs");
+  await expect(canvas(page)).toHaveAttribute("data-sun-caption", "blocked:differs");
+  const note = page.getByTestId("terrain-surface-sun");
+  await expect(note).toHaveAttribute("data-surface", "differs");
+  await expect(note).toContainText("3D view differs: the drawn surface reaches only −0.763° in this direction and leaves the Sun centre (−0.750°) clear on screen.");
+  await expect(note).toContainText("analysis horizon, −0.746° here (LOLA 40 m terrain from 80 m out, seen from the 2 m mast)");
+  await expect(note).toContainText("uncertain either way");
 
   // Playback through the loss: start one hour before it at 1 h of mission time per second.
   await page.getByRole("combobox", { name: "Playback speed" }).selectOption("1");
@@ -187,18 +199,37 @@ test("lighting choice, camera views, site change and close", async ({ page }) =>
   await page.getByRole("radio", { name: "Fixed relief" }).check();
   await page.getByRole("button", { name: "Play terrain time" }).click();
   await expect(page.getByTestId("terrain-lighting-tag")).toHaveText("RELIEF LIGHT · FIXED");
+  await expect(canvas(page)).toHaveAttribute("data-shadows", "off"); // the relief light casts nothing
   await page.getByRole("button", { name: "Pause terrain time" }).click();
   await page.getByRole("radio", { name: "Sun direction" }).check();
   await expect(page.getByTestId("terrain-lighting-tag")).toHaveText("SUN DIRECTION · LIVE");
-  await expect(page.getByTestId("terrain-panel")).toContainText("Surface shading follows the Sun direction");
-  await expect(page.getByTestId("terrain-panel")).toContainText("Cast shadows are not simulated");
+  await expect(page.getByTestId("terrain-panel")).toContainText("Sunlight and cast shadows come from the drawn 3D surface");
+  await expect(page.getByTestId("terrain-panel")).toContainText("the view checks this whenever it can compare the two");
+  // The Sun casts shadows from the drawn mesh: the shadow map is on and has been drawn.
+  await expect(canvas(page)).toHaveAttribute("data-shadows", "on");
+  await expect.poll(async () => Number(await canvas(page).getAttribute("data-shadow-draws"))).toBeGreaterThan(0);
 
-  for (const name of ["Top view", "Face Earth", "Face Sun", "Reset view"]) await clickView(page, name);
+  for (const name of ["Face Earth", "Face Sun"]) await clickView(page, name);
+  // The shadow map covers the ground in view: straight down, a region around the target; from the overview the top
+  // of the view reaches past the curved ground, so the whole model (about 492 km): no unshadowed band at the far edge.
+  const region = async () => Number(await canvas(page).getAttribute("data-shadow-region-km"));
+  await clickView(page, "Top view");
+  await expect.poll(region).toBeLessThan(490);
+  await clickView(page, "Reset view");
+  await expect.poll(region).toBeGreaterThanOrEqual(490);
 
   // Geometric mode keeps the mode tag and the note.
   await page.getByRole("radio", { name: /Geometric/ }).check();
   await expect(page.getByTestId("terrain-panel")).toContainText("Horizon: Geometric reference (no terrain)");
   await expect(page.getByTestId("terrain-panel")).toContainText("flat 0° geometric horizon");
+  // At 09:30 the flat horizon blocks the Sun centre (−0.75°) while the drawn terrain leaves it clear: the caption says
+  // the mode ignores terrain rather than blaming the mesh.
+  await stepSlider(page, "Home");
+  await stepSlider(page, "ArrowRight", LAST_VISIBLE);
+  await expect(page.getByTestId("terrain-time-readout")).toHaveText(`${DATE} 09:30 UTC`);
+  await expect(canvas(page)).toHaveAttribute("data-sun-state", "blocked");
+  await expect(canvas(page)).toHaveAttribute("data-sun-caption", "blocked:flat");
+  await expect(page.getByTestId("terrain-surface-sun")).toContainText("The result uses the flat 0° geometric horizon, which ignores terrain.");
 
   // A new coordinate must never be shown over a model from the previous point.
   await page.getByRole("button", { name: "Play terrain time" }).click();
@@ -255,6 +286,21 @@ test("a model built from another DEM is refused before it is downloaded", async 
   await page.goto("/#/app");
   await page.getByRole("button", { name: "Open 3D terrain" }).click();
   await expect(page.getByTestId("terrain-panel")).toContainText("does not match this site's coordinates or source data", { timeout: READY_MS });
+  await expect(page.getByTestId("terrain-canvas").locator("canvas")).toHaveCount(0);
+  expect(modelRequested).toBe(false);
+});
+
+test("a skyline check for another model is refused before the model is downloaded", async ({ page }) => {
+  let modelRequested = false;
+  await page.route("**/terrain3d/demo-a.glb", route => { modelRequested = true; return route.continue(); });
+  await page.route("**/terrain3d/demo-a.skyline.json", async route => {
+    const res = await route.fetch();
+    const skyline = await res.json();
+    await route.fulfill({ response: res, json: { ...skyline, glbSha256: "0".repeat(64) } });
+  });
+  await page.goto("/#/app");
+  await page.getByRole("button", { name: "Open 3D terrain" }).click();
+  await expect(page.getByTestId("terrain-panel")).toContainText("skyline check does not match this model", { timeout: READY_MS });
   await expect(page.getByTestId("terrain-canvas").locator("canvas")).toHaveCount(0);
   expect(modelRequested).toBe(false);
 });

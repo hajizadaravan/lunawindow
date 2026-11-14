@@ -105,6 +105,12 @@
 .terrain-body[data-state="unknown"] { border-left-style: dotted; border-left-color: var(--unknown-fill); }
 .terrain-body[data-state="unknown"] > span { color: var(--ink-3); font-weight: 500; }
 .terrain-body[data-state="unknown"] .terrain-swatch { background: repeating-linear-gradient(45deg, var(--surface) 0 2px, var(--unknown-fill) 2px 3px); }
+/* the drawn-surface check: a quiet line when it agrees, a warning plate when the surface on screen disagrees */
+.terrain-body .terrain-surface { font: 12px/1.5 var(--font-sans); color: var(--ink-3); }
+.terrain-body .terrain-surface:empty { display: none; }
+.terrain-body .terrain-surface[data-surface="differs"] {
+  margin-top: 4px; padding: 6px 8px; border-left: 3px solid var(--warn); border-radius: 4px; background: var(--warn-bg); color: var(--ink);
+}
 
 /* notes and footer */
 .terrain-footnote, .terrain-model-note { margin: 0; padding: 0 20px 16px; font-size: 13px; line-height: 1.6; color: var(--ink-3); max-width: 110ch; }

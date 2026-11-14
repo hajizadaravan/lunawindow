@@ -366,3 +366,97 @@ the landing's 3D terrain and calendar cards at 390, 700 and 1024 px after the cr
 
 **Not run:** the suite under deliberate machine load; frame rate on the production build (integrator); browsers
 other than Chromium; a real phone or a low-end GPU; contrast tooling, Lighthouse, screen-reader pass.
+
+## 13. 3D view: cast shadows and the drawn-surface check (2026-11-14)
+
+Problem: the 3D view could show a ridge across the Sun's ray while its label said "centre visible" (the label is the
+analysis result, the ridge is the simplified display mesh), and it drew no shadows. Change: Sun lighting now casts
+shadows from the display mesh, and every moment shown is compared with the mesh's own skyline; a disagreement is
+named on the ray ("3D SURFACE DIFFERS") and explained in the readout with both elevations. No state, gap or result
+changed; the analysis, the visibility data and the golden fixture were not touched.
+
+**Skyline export.** `.venv/bin/python -m pipeline.terrain3d_skyline` now also writes
+`web/public/data/terrain3d/<id>.skyline.json` (720 bins each, the higher of the near-field and analysis-range
+skyline, 0.001° rounding, bound to the GLB sha256). The rerun left `data/derived/terrain3d-skyline.json`
+byte-identical. Runtime 65 s.
+
+**How often the drawn surface contradicts the result** (every cached sample, terrain mode; counted in Python from
+the shipped files, and the same counts asserted in `web/tests/unit/terrain-surface.test.ts` through the web code):
+
+| Point | Sun: disagreeing samples (of 12,961) | of them in the near-horizon band | Earth: disagreeing samples | of them near |
+|---|---|---|---|---|
+| A | 369 (2.85 %) | 348 | 146 | 146 |
+| B | 69 | 69 | 8 | 8 |
+| C | 35 | 35 | 2 | 2 |
+
+At A, 191 of the 369 Sun cases remain when only the mesh beyond 80 m is used, so about half come from terrain inside
+the 80 m that the analysis horizon leaves out. Largest elevation gap in a disagreeing case: 0.742° between the centre
+and the analysis horizon (A, Sun). In geometric mode the drawn terrain contradicts the flat 0° result far more often
+(Sun 36 % of samples at A); the same flag and a mode-specific sentence cover it.
+
+**Shadows.** One orthographic shadow map, 4096² (2048² on phones, small or touch screens; capped by the GPU's
+texture limit), fitted in light space to the ground the camera can see (the view's corner rays met with the reference sphere
+lowered by 10 km, since the model keeps lunar curvature; 15 km minimum; the whole model when a corner passes over the
+ground), with depth over the whole model so distant ridges toward the Sun cast. Redrawn only when the Sun moves (0.005°
+in azimuth, 0.001° in elevation) or the region changes. The anti-stripe offset is taken
+along the Sun ray (5 to 600 m: two light-space texels spread at the Sun's elevation), not along the surface normal, so
+shadow edges from occluders farther than the offset stay where the mesh puts them. Relief lighting casts none. The
+labelled fill light rose from 0.12 to 0.4 so ground in shadow keeps its outline. Shadows are display only and are not
+compared with the result; the footnote and README say so.
+
+**Commands**
+
+- `.venv/bin/python -m pytest -q pipeline/tests`: **49 passed** (two new: the display skyline rule, and the web files
+  match the GLBs and analysis bins; the demo-b test now also checks the committed web file equals a fresh export).
+- From `web/`: `npx tsc -b` clean; `npm test`: **13 files, 142 passed** (new `terrain-surface.test.ts`, 6 tests);
+  `npm run build` passed. Same results after the review fixes.
+- `E2E_PORT=4196 npx playwright test`: **34 passed** (1.3 min), before and after the review fixes. New: a skyline
+  file for another GLB is refused before the GLB is requested; shadows are on in Sun lighting (shadow map drawn) and
+  off in relief; in geometric mode at 09:30 the caption is the "TERRAIN IGNORED" variant. The Sun-loss test now asserts "agrees" at 09:30 and "differs" at 09:40 on 2027-02-17 at A
+  (mesh −0.763°, centre −0.750°, analysis horizon −0.746°: the analysis blocks the centre by 0.004°, the drawn surface
+  leaves it clear by 0.013°). Playback frame-rate test with shadows: 52.3 fps at 24.1 h/s, and 52.4 fps after the
+fixes (CPU 4× slower, Metal).
+
+**Looked at in the running app** (dev server, 800 px wide pane): overview and Face Sun at 09:30 and 09:40 on
+2027-02-17 at A in Sun lighting; shadows fall away from the Sun ray, crater rims facing the Sun are lit, no acne
+stripes seen; the caption "SUN · CENTRE BLOCKED · 3D SURFACE DIFFERS" and the readout warning appear at 09:40.
+After the first fixes: overview and Face Sun again (no stripes seen), and 375 px, where the long caption now slides inside the canvas instead of being cut
+off. Not looked at: relief lighting by eye after the change (covered by e2e), points B and C, a low-end GPU.
+
+**Reviews** (Opus agents, high effort, read-only; the `reviewer-*` agent types were not available, so general-purpose
+agents were told not to edit):
+
+- Security: nothing with an attack path. Notes acted on: 2048² shadow map on phones (GPU memory); the agreeing line
+  now reads "the picture matches the result (display only)" so it is not taken as independent confirmation. Not acted
+  on: the skyline file has no hash of its own; it is bound to the GLB hash and shape-checked, and can only change
+  warning text, never a state.
+- Code: two defects, both fixed. (1) The anti-stripe offset was along the surface normal and tens of metres at
+  overview scale, which at a 1° Sun moves shadow edges by kilometres, and the footnote claimed the opposite direction
+  of error; now the offset is along the Sun ray and the footnote and README describe shadows as approximate and
+  unchecked. (2) Terrain beyond 3× the camera distance had no shadows and a lit seam; the map now covers the ground in
+  view. Lesser notes acted on: redraw only on 0.005° Sun steps; shadows switched only with the lighting choice (no
+  material recompiles at data gaps); the readout's "uncertain" sentence uses the same analysis flag as the state line;
+  geometric mode gets its own caption; pan target clamped to the model; `docs/data-pipeline.md` names the new files;
+  mast height in the footnote from the dataset; e2e checks for shadows on/off; the shadow map is disposed. Not acted
+  on: CLAUDE.md still lists cast shadows as out of scope and `export_terrain3d.py` writes "No cast-shadow simulation"
+  into each model's `limitations` (true of the file itself; regenerating the GLBs needs the DEM and is not
+  byte-reproducible), both left for the user.
+- Second round over the fixes (same setup, medium). Security: nothing; notes acted on: the agreeing line says "the
+  drawn skyline matches the result", in geometric mode "this mode ignores terrain"; the footnote says "every moment
+  with data"; a non-finite skyline value is treated as no surface. Code: one defect, fixed: the view's corner rays were
+  met with the flat plane y = 0, but the model is curved, so in the default views terrain beyond about 110 to 140 km
+  still had no shadows; they now meet the curved ground, and an e2e assertion checks that the overview's shadow map
+  covers the whole model (about 492 km; the flat-plane version gave about 110 to 270 km there by the reviewer's
+  geometry). Also acted on: finer elevation key, no unused no-data caption variants, typed body labels. Not acted on:
+  the 600 m offset cap at whole-model scale (disclosed in README and footnote), and the skyline file stays required
+  (fail closed, as the contract says). After this round: 142 unit, 34 e2e (54.2 fps at 24.1 h/s), 49 pytest, build
+  passed. The pane was hidden for the last look, so this round was checked by the e2e assertion, not by eye.
+- Third round over those fixes (same setup, medium). Code: nothing broken; acted on: the ground sphere is centred
+  R + surface height below the origin (it was R; still safe, now exact), the coverage test first checks that the top
+  view gives a smaller region so the overview's whole-model value is not a leftover, footnote wording "whenever it can
+  compare the two". Security: one low integrity note, acted on: a non-finite radius in the data now falls back to
+  whole-model coverage instead of a NaN shadow frustum.
+- Final checks on the finished tree: `npx tsc -b` clean, 142 unit tests, build passed, 49 pytest (pipeline unchanged
+  since), e2e **34 passed** (1.2 min, 51.9 fps at 24.1 h/s). Two earlier runs of this round did not pass: one took
+  44 min with 5 failures, all timeouts (such as a 120 s screenshot timeout) while the machine's load average was
+  about 14 from other work; the next failed only on a test string I had not updated after a footnote rewording.

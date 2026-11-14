@@ -99,3 +99,45 @@ export function validateTerrainMetadata(raw: unknown, site: SiteDataset, demSha2
     throw new Error("The terrain model does not match this site's coordinates or source data.");
   }
 }
+
+/** terrain3d/<siteId>.skyline.json (docs/data-contract.md section 6): the drawn mesh's skyline, display only. */
+export interface DisplaySkyline {
+  schemaVersion: 1;
+  siteId: string;
+  glbSha256: string;
+  horizonId: string;
+  observerHeightM: number;
+  azimuthStepDeg: number;
+  /** Per analysis azimuth bin; null where the mesh has no surface in that direction. */
+  elevationDeg: (number | null)[];
+}
+
+/** Throws unless the skyline belongs to this site's terrain horizon bins and to exactly this GLB. */
+export function validateDisplaySkyline(raw: unknown, site: SiteDataset, glbSha256: string): asserts raw is DisplaySkyline {
+  const s = raw as Partial<DisplaySkyline> | null;
+  const terrain = site.horizons.terrain;
+  if (!s || typeof s !== "object" || !terrain || s.schemaVersion !== 1 || s.siteId !== site.site.id ||
+      s.glbSha256 !== glbSha256 || s.horizonId !== terrain.id || s.observerHeightM !== site.site.observerHeightM ||
+      s.azimuthStepDeg !== terrain.azimuthStepDeg || !Array.isArray(s.elevationDeg) ||
+      s.elevationDeg.length !== terrain.elevationDeg.length ||
+      !s.elevationDeg.every(v => v === null || (typeof v === "number" && Number.isFinite(v) && v >= -90 && v <= 90))) {
+    throw new Error("The terrain model's skyline check does not match this model.");
+  }
+}
+
+/**
+ * Skyline of the drawn surface at an azimuth, interpolated between bins exactly as the analysis interpolates its
+ * horizon (visibility.ts horizonElevationAt). Null when either neighbouring bin has no surface.
+ */
+export function displaySkylineAt(skyline: DisplaySkyline, azDeg: number): number | null {
+  const bins = skyline.elevationDeg;
+  const n = bins.length;
+  if (n === 0 || !Number.isFinite(azDeg)) return null;
+  const pos = (((azDeg % 360) + 360) % 360) / skyline.azimuthStepDeg;
+  const k0 = Math.floor(pos) % n;
+  const a = bins[k0];
+  const b = bins[(k0 + 1) % n];
+  if (a === null || b === null) return null;
+  const v = a + (b - a) * (pos - Math.floor(pos));
+  return Number.isFinite(v) ? v : null; // a malformed bin layout never turns into a flag
+}

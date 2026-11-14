@@ -18,9 +18,14 @@ fixture were not touched. The branch is committed (merge commit, the friend's au
 - Demo points A (−89.45, 222.7°E), B (−85.9883, 2.0625°E), C (−88.65, 106.8°E). Never called NASA landing sites.
 - DEM: `LDEM_80S_40MPP_ADJ.TIF` (PGDA product 90); uncertainty 0.12° / 0.17° / 0.05°.
 - **The 3D mesh is display only.** Visible, blocked and no-data states in the 3D view come from the analysis results
-  (`web/src/terrain/playback.ts` `statusAt`), never from the mesh, and no cast shadows are drawn. Reason, measured:
-  the mesh skyline differs from the analysis horizon by more than the stated uncertainty in 81 of 720 bins at A and
-  32 at C (`data/derived/terrain3d-skyline.json`, `docs/verification-data.md` section 10).
+  (`web/src/terrain/playback.ts` `statusAt`), never from the mesh. Reason, measured: the mesh skyline differs from
+  the analysis horizon by more than the stated uncertainty in 81 of 720 bins at A and 32 at C
+  (`data/derived/terrain3d-skyline.json`, `docs/verification-data.md` section 10).
+- **Shadows and the drawn-surface check (2026-11-14).** Sun lighting casts shadows from the display mesh (display
+  only, approximate, not checked). So that the drawn skyline never contradicts a label silently, the view compares every moment with the mesh's own skyline
+  (`terrain3d/<id>.skyline.json`, written by `pipeline.terrain3d_skyline`, bound to the GLB sha256, contract
+  section 6) and, when they disagree, says "3D SURFACE DIFFERS" on the ray and explains it in the readout with
+  both elevations. The check never changes a state. Measured: verification section 13.
 - Playback: requestAnimationFrame, 1 / 6 / 24 h of mission time per second, directions interpolated between samples.
   The shared cursor is published at most every 250 ms while playing and exactly on pause, end, scrub and tab hide.
   Any outside change (timeline drag, new window, new start) stops playback and the panel rests on the shared cursor.
@@ -46,8 +51,8 @@ fixture were not touched. The branch is committed (merge commit, the friend's au
 - Body-centre visibility only; no power or link model.
 - 40 m DEM cannot represent metre-scale relief near a 2 m mast; at the two summit points 30–40 % of azimuths
   have a horizon set within 200 m. Horizon uncertainty moves transitions by 0.5–7.6 h in the measured cases.
-- The 3D view shows no cast shadows and its mesh can disagree with the analysis horizon (see above), so terrain can
-  be drawn across a ray that is labelled "centre visible".
+- The 3D view's mesh can disagree with the analysis horizon at a few moments (Sun at A: 369 of 12,961 samples,
+  mostly inside the near-horizon band); the view flags each such moment. Its shadows are approximate and unchecked.
 - Horizons MEAN_ME (DE441) vs LOLA MOON_ME (DE421) offset not quantified.
 - Not run: the e2e suite under deliberate machine load, browsers other than Chromium, a real phone or low-end GPU,
   contrast tooling, Lighthouse, screen-reader pass.
@@ -58,7 +63,7 @@ fixture were not touched. The branch is committed (merge commit, the friend's au
    reuse it (the app has its own `sunVerdict`); at 1024 and 390 px the map section comes after the evidence sections.
 2. Higgsfield media: not generated. Generation is refused from Claude Code; the prompt pack `docs/media-prompts.md`
    is meant to be run in Claude chat. The existing `hero-loop.mp4` stays in use.
-3. Shown on the landing as "Planned, not built yet": south-pole date heatmap, cast shadows in the 3D terrain view,
-   energy and battery model. Later items of `docs/3d-asset-plan.az.md` (5 m DEM detail, photo textures, whole-Moon
+3. Shown on the landing as "Planned, not built yet": south-pole date heatmap, energy and battery model
+   (cast shadows shipped on 2026-11-14). Later items of `docs/3d-asset-plan.az.md` (5 m DEM detail, photo textures, whole-Moon
    and Earth models, SPICE frames) each need their own data verification first.
 4. Optional: show how far a boundary-truncated gap extends inside the cached range; deploy as static files.

@@ -74,7 +74,9 @@ skyline comparison are made by two modules. Neither touches the visibility data 
 
 # b. Skyline check: the display mesh's skyline from the 2 m mast minus the analysis terrain horizon, per
 #    azimuth bin. Reads only the committed GLBs and site files (no DEM, no network); deterministic.
-#    Writes data/derived/terrain3d-skyline.json.
+#    Writes data/derived/terrain3d-skyline.json, and web/public/data/terrain3d/<id>.skyline.json (the drawn
+#    surface's skyline, bound to the GLB sha256). Rerun after every export_terrain3d: the 3D view refuses a
+#    skyline whose GLB hash does not match.
 .venv/bin/python -m pipeline.terrain3d_skyline
 
 # c. Tests (pipeline/tests/test_terrain3d.py, test_terrain3d_skyline.py) run with step 8.
@@ -102,7 +104,7 @@ expect identical bytes across environments.
 | `maprender.py` | Hillshade overview + exact map extents |
 | `export.py`, `golden.py` | Write `web/public/data/**` and `fixtures/analysis-golden.json` |
 | `export_terrain3d.py` | 3D display meshes `web/public/data/terrain3d/<id>.glb` + `.json` (display only) |
-| `terrain3d_skyline.py` | Display-mesh skyline vs analysis terrain horizon -> `data/derived/terrain3d-skyline.json` |
+| `terrain3d_skyline.py` | Display-mesh skyline vs analysis terrain horizon -> `data/derived/terrain3d-skyline.json`, `web/public/data/terrain3d/<id>.skyline.json` |
 
 ## Data sources
 

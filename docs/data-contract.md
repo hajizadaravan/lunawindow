@@ -277,8 +277,9 @@ written by `pipeline.export_terrain3d` from the pinned 40 m raster (`LDEM_80S_40
 real datasets; a synthetic dataset has none.
 
 ```
-web/public/data/terrain3d/<siteId>.glb    binary glTF 2.0: positions, normals, triangle indices and plain materials; no textures, extensions or external URIs
-web/public/data/terrain3d/<siteId>.json   TerrainDisplayMeta below
+web/public/data/terrain3d/<siteId>.glb            binary glTF 2.0: positions, normals, triangle indices and plain materials; no textures, extensions or external URIs
+web/public/data/terrain3d/<siteId>.json           TerrainDisplayMeta below
+web/public/data/terrain3d/<siteId>.skyline.json   DisplaySkyline below (written by pipeline.terrain3d_skyline from the GLB, no DEM)
 ```
 
 **Normative: display only.** The mesh is a display model (nested grids at 40, 160, 640 and 2560 m with stitched
@@ -286,7 +287,18 @@ edges) and must **never** be used to derive visibility, horizon elevations, gaps
 result. Every visible, blocked or no-data state shown in the 3D view comes from the section 4 analysis of the site
 dataset's horizon, the same results the timelines use. The mesh skyline seen from the observer differs from the
 analysis terrain horizon by more than the stated horizon uncertainty in part of the azimuths at some points
-(measured in `data/derived/terrain3d-skyline.json`), and the mesh casts no shadows.
+(measured in `data/derived/terrain3d-skyline.json`).
+
+**Shadows and the drawn-surface check (display only).** In Sun lighting the web app casts shadows from the mesh,
+so the shading shows what the drawn surface does. Because that surface can disagree with the analysis horizon, the
+app compares, at every moment shown, the body centre's elevation with `DisplaySkyline` at the body's azimuth
+(interpolated between bins exactly as section 4 interpolates the horizon; a centre on or below the skyline counts
+as hidden on screen, matching "visible only when the margin is above zero"). At sample times this is the section 4
+rule applied to the drawn surface; between samples (playback) the direction is interpolated, so the flag can differ
+from a zero-crossing split for a frame or so. In the geometric mode the caption says the mode ignores terrain. When the drawn surface hides a centre
+the analysis counts as visible, or leaves clear one it counts as blocked, the ray caption and the readout say so
+and give both elevations. The comparison never changes a state, gap or any other result; a moment with no data,
+no direction or a skyline bin without surface is not compared.
 
 **Local frame.** Positions are metres in a right-handed local frame with the origin on the surface at the site
 (`origin.surfaceElevationM` above the reference sphere): x = east, y = up (radial), z = south. The frame keeps lunar
@@ -325,7 +337,24 @@ interface TerrainDisplayMeta {
 "Required" means the web app checks the field against the site dataset and the manifest before it downloads the
 mesh, and shows no 3D view when any check fails. The other fields are descriptive.
 
-**Integrity.** The web app downloads the GLB only after the JSON passes those checks, then compares the GLB's byte
+```ts
+// ---------- terrain3d/<siteId>.skyline.json ----------
+interface DisplaySkyline {
+  schemaVersion: 1;                   // required; the web app rejects any other value
+  siteId: string;                     // required; equals site.id
+  glbSha256: string;                  // required; equals TerrainDisplayMeta.sha256 (so, after the GLB check, the GLB's own hash)
+  horizonId: string;                  // required; equals the site's horizons.terrain.id
+  observerHeightM: number;            // required; equals site.observerHeightM
+  azimuthStepDeg: number;             // required; equals the site's horizons.terrain.azimuthStepDeg
+  description: string;
+  elevationDeg: (number | null)[];    // required; one value per terrain-horizon bin (bin i at i * azimuthStepDeg),
+                                      // the mesh's highest elevation angle from the observer, near field included,
+                                      // rounded to 0.001 deg; null where the mesh has no surface; else within [-90, 90]
+}
+```
+
+**Integrity.** The web app reads the skyline after the JSON passes its checks and before the GLB is requested, and
+shows no 3D view when the skyline fails its checks. It downloads the GLB only after the JSON passes those checks, then compares the GLB's byte
 length with `bytes` and its sha256 with `sha256` **before parsing it**; a mismatch shows no 3D view. The GLB and its
 JSON are always regenerated and committed together. The hash comes from a JSON served from the same origin as the
 GLB, so this check catches a corrupted, truncated or mismatched file; it is not protection against someone who can

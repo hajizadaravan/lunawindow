@@ -15,6 +15,11 @@ edge/half-plane crossings. `sampled_skyline` is an independent check that sample
 and interpolates heights inside triangles; it converges to the exact value from below as spacing shrinks.
 
 Only the committed GLB and site JSON are read: no DEM and no network, so the check always runs.
+
+It also writes web/public/data/terrain3d/<siteId>.skyline.json (docs/data-contract.md section 6): the display
+mesh's whole skyline from the observer (near field included, i.e. what the drawn surface hides on screen) at the
+analysis azimuths, bound to the GLB by its sha256. The web app uses it only to say when the drawn surface and the
+analysis result disagree at the current moment; it never sets a visibility state.
 Local axes are x = east, y = up, z = south (pipeline.export_terrain3d); azimuth is clockwise from north.
 """
 from __future__ import annotations
@@ -29,6 +34,7 @@ import numpy as np
 from . import config
 
 OUTPUT = config.REPO_ROOT / "data" / "derived" / "terrain3d-skyline.json"
+WEB_SKYLINE_SCHEMA = 1
 DECIMALS = 3                       # degrees; 0.001 deg is far below every stated uncertainty
 CHECK_SPACINGS_M = (20.0, 10.0, 5.0, 2.5)
 CHECK_EVERY_NTH_BIN = 8
@@ -177,7 +183,25 @@ def _stats(diff: np.ndarray) -> dict:
             "maxDeg": rnd(d.max()), "maxAbsDeg": rnd(np.abs(d).max()), "binsCompared": int(d.size)}
 
 
+def web_skyline_path(site_id: str) -> Path:
+    return config.WEB_DATA_DIR / "terrain3d" / f"{site_id}.skyline.json"
+
+
+def display_skyline(near_sky: np.ndarray, far_sky: np.ndarray) -> list[float | None]:
+    """Whole skyline of the drawn surface per bin (deg): the higher of the near field and the analysis range,
+    rounded to DECIMALS; None where the ray meets no mesh at all."""
+    out: list[float | None] = []
+    for near, far in zip(near_sky, far_sky):
+        both = [v for v in (near, far) if np.isfinite(v)]
+        out.append(round(float(max(both)), DECIMALS) + 0.0 if both else None)
+    return out
+
+
 def measure_site(site_id: str, *, with_sampling_check: bool = True) -> dict:
+    return _measure(site_id, with_sampling_check=with_sampling_check)[0]
+
+
+def _measure(site_id: str, *, with_sampling_check: bool) -> tuple[dict, dict]:
     site_doc = json.loads((config.WEB_DATA_DIR / "sites" / f"{site_id}.json").read_text())
     horizon = site_doc["horizons"]["terrain"]
     obs = float(site_doc["site"]["observerHeightM"])
@@ -214,7 +238,20 @@ def measure_site(site_id: str, *, with_sampling_check: bool = True) -> dict:
     }
     if with_sampling_check:
         result["samplingCheck"] = sampling_check(vertices, faces, obs, az, far_sky, near_m, extent_m)
-    return result
+    web = {
+        "schemaVersion": WEB_SKYLINE_SCHEMA,
+        "siteId": site_id,
+        "glbSha256": sha,
+        "horizonId": horizon["id"],
+        "observerHeightM": obs,
+        "azimuthStepDeg": step,
+        "description": "Display only. Highest elevation angle of the drawn 3D display mesh seen from the observer, "
+                       "per analysis azimuth bin (bin i at i * azimuthStepDeg), near field included; null where "
+                       "the mesh has no surface. Used only to flag moments where the drawn surface and the "
+                       "analysis result disagree; never used for visibility.",
+        "elevationDeg": display_skyline(near_sky, far_sky),
+    }
+    return result, web
 
 
 def sampling_check(vertices, faces, obs, az, exact_far, near_m, extent_m) -> dict:
@@ -231,7 +268,10 @@ def sampling_check(vertices, faces, obs, az, exact_far, near_m, extent_m) -> dic
 
 
 def main() -> None:
-    sites = [measure_site(site.id) for site in config.SITES]
+    measured = [_measure(site.id, with_sampling_check=True) for site in config.SITES]
+    sites = [m[0] for m in measured]
+    for _, web in measured:
+        web_skyline_path(web["siteId"]).write_text(json.dumps(web, separators=(",", ":")) + "\n")
     report = {
         "description": "Skyline of the shipped 3D display mesh minus the analysis terrain horizon, seen from "
                        "the observer height above the site surface, at the analysis azimuths. Positive = the "

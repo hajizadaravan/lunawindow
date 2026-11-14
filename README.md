@@ -53,10 +53,15 @@ Other commands (from `web/`): `npm test`, `npm run build`, `npm run preview`,
   0.14° at B and 0.225° at C, which exceeds the stated horizon uncertainty in 81 of 720 azimuth bins at A and
   32 of 720 at C (`data/derived/terrain3d-skyline.json`). Inside those first 80 m, which the analysis horizon
   leaves out, the mesh rises above the analysis horizon by up to 0.749° at A (by more than the stated uncertainty
-  in 150 of 720 bins), by up to 0.01° at B and nowhere at C. So the 3D view can draw terrain across a ray that
-  is labelled "centre visible": the label is the analysis result, not what the mesh shows.
-- The 3D view simulates no cast shadows. Its surface shading follows the Sun direction only, so a slope can look
-  lit while the Sun centre is blocked by distant terrain.
+  in 150 of 720 bins), by up to 0.01° at B and nowhere at C. So at some moments the drawn surface hides a centre
+  the analysis counts as visible, or the reverse. The view checks this whenever it can compare the two and then says so on
+  the ray ("3D SURFACE DIFFERS") and in the readout, with both elevations; the state stays the analysis result.
+  Over the whole cached range in terrain mode this happens for the Sun at 369 of 12,961 samples at A (348 of them
+  inside the near-horizon band), 69 at B and 35 at C; for the Earth at 146, 8 and 2.
+- Cast shadows in the 3D view (Sun lighting) come from the display mesh, not from the analysis, and are display
+  only: one shadow map over the terrain in view, so edges are approximate (an anti-stripe offset of 5 to 600 m along
+  the Sun ray hides occluders closer than that), they fall on the ground rather than at the mast top, and they are
+  not compared with the result. The ray captions and readouts are the result.
 
 ## Data sources
 

@@ -55,7 +55,7 @@ export const FEATURES: Feature[] = [
   {
     id: "terrain",
     title: "3D terrain view",
-    body: "Watch the Sun and Earth directions move over measured LOLA terrain across your window. The mesh is display only; visibility comes from the analysis.",
+    body: "Sun and Earth directions and their shadows move over measured LOLA terrain. Visibility comes from the analysis; the view flags when the drawn surface disagrees.",
     visual: { kind: "shot", shot: MEDIA.shots.terrain },
     span: 12,
   },
@@ -80,6 +80,5 @@ export const FEATURES: Feature[] = [
 /** Planned work, deliberately not built yet. No dates, no promises. */
 export const PLANNED = [
   "A date heatmap for the whole south-pole region",
-  "Cast shadows in the 3D terrain view",
   "An energy and battery model",
 ];

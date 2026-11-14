@@ -30,16 +30,17 @@ describe("feature list", () => {
     expect(FEATURES.filter((f) => f.visual.kind === "shot").length).toBeGreaterThanOrEqual(3);
   });
 
-  it("lists the 3D terrain view as shipped and only its cast shadows as planned", () => {
+  it("lists the 3D terrain view, with its shadows, as shipped", () => {
     expect(FEATURES.map((f) => f.id)).toEqual(["calendar", "delay", "horizon", "timeline", "terrain", "modes", "limits"]);
     expect(PLANNED).toEqual([
       "A date heatmap for the whole south-pole region",
-      "Cast shadows in the 3D terrain view",
       "An energy and battery model",
     ]);
-    // The 3D view shows directions over a display mesh; it neither simulates shadows nor computes visibility.
+    // The 3D view draws shadows from its display mesh; it never computes visibility, power or a radio link.
     const terrain = FEATURES.find((f) => f.id === "terrain")!;
-    expect(`${terrain.title} ${terrain.body}`).not.toMatch(/shadow|illuminat|power|line of sight|\bbest\b/i);
+    expect(`${terrain.title} ${terrain.body}`).toMatch(/shadows/);
+    expect(`${terrain.title} ${terrain.body}`).toMatch(/Visibility comes from the analysis/);
+    expect(`${terrain.title} ${terrain.body}`).not.toMatch(/illuminat|power|line of sight|\bbest\b/i);
   });
 
   it("uses no dash characters or banned wording in landing copy", () => {

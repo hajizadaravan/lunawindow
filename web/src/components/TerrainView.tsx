@@ -3,7 +3,7 @@ import { ArrowCounterClockwise, ArrowSquareOut, Cube, Pause, Play, Sun, GlobeHem
 import type { AnalysisResult, BodyId, HorizonInput, SiteDataset, VisState } from "../contract/types";
 import { fmtDeg, fmtUtc } from "../analysis/format";
 import { directionsAt, directionsAtPosition } from "../terrain/geometry";
-import { advance, DEFAULT_SPEED, PUBLISH_MS, SPEEDS, STATE_LABEL, statusAt, type Speed } from "../terrain/playback";
+import { advance, DEFAULT_SPEED, PUBLISH_MS, SPEEDS, STATE_LABEL, statusAt, surfaceCheck, surfaceNote, type Speed } from "../terrain/playback";
 import type { Lighting, TerrainScene } from "../terrain/scene";
 import { ModeTag } from "./ModeTag";
 import "../terrain/terrain.css";
@@ -28,14 +28,14 @@ interface Props {
  */
 const OPENING_LIGHTING: Lighting = "sun";
 const BODIES: BodyId[] = ["sun", "earth"];
-const BODY_LABEL: Record<BodyId, string> = { sun: "Sun", earth: "Earth" };
+const BODY_LABEL = { sun: "Sun", earth: "Earth" } as const satisfies Record<BodyId, string>;
 
 /** Remount per site, so an old terrain model can never be labelled as a new site. */
 export function TerrainView(props: Props) {
   return <TerrainPanel key={props.site.site.id} {...props} />;
 }
 
-type ReadoutRefs = Record<BodyId, { box: HTMLDivElement | null; state: HTMLSpanElement | null; angles: HTMLElement | null }>;
+type ReadoutRefs = Record<BodyId, { box: HTMLDivElement | null; state: HTMLSpanElement | null; angles: HTMLElement | null; surface: HTMLElement | null }>;
 
 function TerrainPanel(p: Props) {
   const [active, setActive] = useState(false);
@@ -76,7 +76,7 @@ function TerrainPanel(p: Props) {
   const timeRef = useRef<HTMLSpanElement>(null);
   const sliderRef = useRef<HTMLInputElement>(null);
   const playheadRef = useRef<HTMLDivElement>(null);
-  const readouts = useRef<ReadoutRefs>({ sun: { box: null, state: null, angles: null }, earth: { box: null, state: null, angles: null } });
+  const readouts = useRef<ReadoutRefs>({ sun: { box: null, state: null, angles: null, surface: null }, earth: { box: null, state: null, angles: null, surface: null } });
 
   /** Draw one moment: scene, text readouts and strip playhead all from the same directions and analysis states. */
   const paint = useCallback((pos: number) => {
@@ -86,7 +86,19 @@ function TerrainPanel(p: Props) {
     const tMs = windowStartMs + pos * step;
     const d = directionsAtPosition(site, horizon, first + pos);
     const status = statusAt(results, tMs);
-    scene.current?.setFrame({ directions: d, state: { sun: status.sun.state, earth: status.earth.state } });
+    // Does the drawn surface tell the same story as the analysis? Display only: it flags, it never sets a state.
+    const skyline = scene.current?.skyline ?? null;
+    const check = { sun: surfaceCheck(skyline, d.sun, status.sun.state), earth: surfaceCheck(skyline, d.earth, status.earth.state) };
+    const terrain = horizon.kind === "terrain" ? site.horizons.terrain : undefined;
+    const terrainSource = terrain
+      ? `LOLA ${terrain.dem.resolutionM} m terrain from ${terrain.nearFieldStartM} m out, seen from the ${site.site.observerHeightM} m mast`
+      : null;
+    scene.current?.setFrame({
+      directions: d,
+      state: { sun: status.sun.state, earth: status.earth.state },
+      surface: { sun: check.sun.agreement, earth: check.earth.agreement },
+      geometric: horizon.kind === "geometric",
+    });
     if (timeRef.current) timeRef.current.textContent = fmtUtc(tMs);
     if (sliderRef.current) sliderRef.current.value = String(Math.floor(pos));
     if (playheadRef.current) playheadRef.current.style.left = `${sampleCount > 1 ? (pos / (sampleCount - 1)) * 100 : 0}%`;
@@ -96,6 +108,15 @@ function TerrainPanel(p: Props) {
       if (r.box) r.box.dataset.state = s.state;
       if (r.state) r.state.textContent = `${STATE_LABEL[s.state]}${s.near ? " · near horizon (uncertain)" : ""}`;
       if (r.angles) r.angles.textContent = `Az ${fmtDeg(d[body]?.az ?? null)} · El ${fmtDeg(d[body]?.el ?? null)}`;
+      if (r.surface) {
+        const c = check[body];
+        r.surface.dataset.surface = c.agreement;
+        r.surface.textContent = c.agreement === "differs"
+          ? surfaceNote(BODY_LABEL[body], c, d[body], s.state, s.near, terrainSource, v => fmtDeg(v, 3))
+          : c.agreement !== "agrees" || c.surfaceDeg === null ? ""
+          : terrainSource === null ? `Drawn 3D surface here: ${fmtDeg(c.surfaceDeg)} (this mode ignores terrain)`
+          : `Drawn 3D surface here: ${fmtDeg(c.surfaceDeg)} · the drawn skyline matches the result (display only)`;
+      }
     }
   }, []);
 
@@ -277,16 +298,19 @@ function TerrainPanel(p: Props) {
                 <strong><span className="terrain-swatch" aria-hidden /> {BODY_LABEL[body]}</strong>
                 <span ref={el => { readouts.current[body].state = el; }} />
                 <small ref={el => { readouts.current[body].angles = el; }} />
+                <small className="terrain-surface" data-testid={`terrain-surface-${body}`} ref={el => { readouts.current[body].surface = el; }} />
               </div>
             ))}
             <ModeTag horizon={p.horizon} />
           </div>
           {p.horizon.kind === "geometric" && <p className="terrain-model-note">Terrain is shown for context. The visibility states currently use the flat 0° geometric horizon.</p>}
           <p className="terrain-footnote">
-            {lighting === "relief" ? "Fixed relief lighting reveals the landscape." : "Surface shading follows the Sun direction, with a small fill light for legibility."}
-            {" "}Cast shadows are not simulated, so a slope can look lit while the Sun centre is blocked by terrain farther away.
+            {lighting === "relief"
+              ? "Fixed relief lighting reveals the landscape and casts no shadows."
+              : "Sunlight and cast shadows come from the drawn 3D surface, with a uniform fill light so ground in shadow stays readable. Shadows are display only: their edges are approximate, they fall on the ground rather than at the mast top, and they are not compared with the result."}
+            {" "}The drawn surface is a simplified display mesh, so at a few moments it can hide a centre the analysis counts as visible, or the reverse: the view checks this whenever it can compare the two and says so on the ray and in the readout above.
             {" "}Visible, blocked and no-data states on the rays, the marker rings (inner Sun, outer Earth), the strip and these readouts come from the same analysis as the timelines: solid and coloured when the centre is visible, grey and dashed with an open marker when blocked, faint and dotted when there is no data.
-            {" "}The rays and markers show directions from the 2 m mast, not body distances or sizes.
+            {" "}The rays and markers show directions from the {p.site.site.observerHeightM} m mast, not body distances or sizes.
           </p>
           <div className="terrain-footer">
             <a href="https://pgda.gsfc.nasa.gov/products/90" target="_blank" rel="noreferrer">NASA / GSFC / LOLA · Barker et al. 2023 <ArrowSquareOut size={14} aria-hidden /></a>
